@@ -1,33 +1,22 @@
-import { db } from "../lib/db.js";
-import { fetchPosts } from "../lib/rssFetch.js";
+import { fetchAllSitesPosts } from "../lib/wordpress"
 
-const sites = [
-  "https://example1.com",
-  "https://example2.com",
-  "https://example3.com",
-];
+async function runAutomation() {
+  console.log("Starting SEO scan...\n")
 
-async function run() {
-  for (const site of sites) {
-    const posts = await fetchPosts(site);
+  const data = await fetchAllSitesPosts()
 
-    console.log(`\n=== ${site} ===`);
+  for (const site in data) {
+    const posts = data[site]
 
-    for (const p of posts) {
-      console.log(p.title);
+    console.log(`\nSite: ${site}`)
+    console.log(`Posts found: ${posts.length}`)
 
-      db.prepare(`
-        INSERT INTO posts (title, content, source)
-        VALUES (?, ?, ?)
-      `).run(
-        p.title,
-        p.content ?? "",
-        site
-      );
-    }
+    posts.slice(0, 3).forEach((post) => {
+      console.log("-", post.title.rendered)
+    })
   }
 
-  console.log("\n🚀 Scan complete");
+  console.log("\nScan complete.")
 }
 
-run();
+runAutomation()
