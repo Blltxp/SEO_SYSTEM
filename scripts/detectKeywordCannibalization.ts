@@ -1,28 +1,17 @@
-import { detectKeywordCannibalization } from "../lib/keyword"
+import { detectKeywordCannibalization } from "../lib/keyword.js"
 
-async function run() {
+const conflicts = detectKeywordCannibalization()
 
-  console.log("Checking keyword cannibalization...\n")
+console.log(`Found ${conflicts.length} keyword conflicts\n`)
 
-  const conflicts = detectKeywordCannibalization()
+for (const c of conflicts) {
 
-  if (conflicts.length === 0) {
+  console.log("Keyword:", c.keyword)
 
-    console.log("No keyword conflicts found.")
-    return
-
+  for (const p of c.pages) {
+    console.log(" -", p.source)
   }
 
-  console.log(`Found ${conflicts.length} keyword conflicts\n`)
-
-  for (const c of conflicts.slice(0, 10)) {
-
-    console.log("Keyword:", c.keyword)
-    console.log("Sites:", c.sources.join(", "))
-    console.log("-----------------------")
-
-  }
+  console.log("")
 
 }
-
-run()

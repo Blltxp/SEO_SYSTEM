@@ -1,16 +1,14 @@
-import Parser from "rss-parser";
+import Parser from "rss-parser"
 
-const parser = new Parser();
+const parser = new Parser()
 
 export async function fetchPosts(site: string) {
 
-  const feed = await parser.parseURL(`${site}/feed`);
+  const feed = await parser.parseURL(`${site}/feed`)
 
-  return feed.items.map((item) => ({
+  return feed.items.map(item => ({
     title: item.title ?? "",
-    content: item.contentSnippet ?? "",
-    url: item.link ?? "",
-    source: site
-  }));
+    content: item.contentSnippet ?? ""
+  }))
 
 }

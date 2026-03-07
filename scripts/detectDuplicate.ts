@@ -1,36 +1,17 @@
-import { detectTitleDuplicates } from "../lib/duplicate"
-import { detectContentDuplicates } from "../lib/duplicate"
+import { detectTitleDuplicates } from "../lib/duplicate.js"
 
-async function run() {
+const dups = detectTitleDuplicates()
 
-  console.log("Checking title duplicates...\n")
+console.log(`Found ${dups.length} duplicate titles\n`)
 
-  const titleDup = detectTitleDuplicates()
+for (const d of dups) {
 
-  console.log("Title duplicates:", titleDup.length)
+  console.log("Title:", d.title)
 
-  console.log("\nChecking content similarity...\n")
-
-  const contentDup = detectContentDuplicates(0.8)
-
-  if (contentDup.length === 0) {
-
-    console.log("No content duplicates found.")
-    return
-
+  for (const p of d.pages) {
+    console.log(" -", p.source)
   }
 
-  console.log(`Found ${contentDup.length} similar articles\n`)
-
-  for (const d of contentDup.slice(0, 10)) {
-
-    console.log("Similarity:", d.score.toFixed(2))
-    console.log(d.siteA, ":", d.titleA)
-    console.log(d.siteB, ":", d.titleB)
-    console.log("---------------------------")
-
-  }
+  console.log("")
 
 }
-
-run()

@@ -1,60 +1,31 @@
-import { db } from "./db"
+import { db } from "./db.js"
 
-export type KeywordConflict = {
-  keyword: string
-  count: number
-  sources: string[]
-}
+export function detectKeywordCannibalization() {
 
-function extractKeyword(title: string): string {
-
-  const words = title
-    .toLowerCase()
-    .replace(/[^\w\sก-๙]/g, "")
-    .split(/\s+/)
-
-  return words.slice(0, 3).join(" ")
-
-}
-
-export function detectKeywordCannibalization(): KeywordConflict[] {
-
-  const posts = db.prepare(`
+  const rows = db.prepare(`
     SELECT title, source
     FROM posts
   `).all() as any[]
 
-  const map: Record<string, Set<string>> = {}
+  const map: Record<string, any[]> = {}
 
-  for (const post of posts) {
+  for (const r of rows) {
 
-    const keyword = extractKeyword(post.title)
+    const keyword = r.title.toLowerCase()
 
     if (!map[keyword]) {
-      map[keyword] = new Set()
+      map[keyword] = []
     }
 
-    map[keyword].add(post.source)
+    map[keyword].push(r)
 
   }
 
-  const conflicts: KeywordConflict[] = []
+  return Object.entries(map)
+    .filter(([, pages]) => pages.length > 1)
+    .map(([keyword, pages]) => ({
+      keyword,
+      pages
+    }))
 
-  for (const keyword in map) {
-
-    const sources = Array.from(map[keyword])
-
-    if (sources.length > 1) {
-
-      conflicts.push({
-        keyword,
-        count: sources.length,
-        sources
-      })
-
-    }
-
-  }
-
-  return conflicts
 }

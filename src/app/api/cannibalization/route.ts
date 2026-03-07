@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 
-type PostRow = {
-  title: string
-  source: string
-}
-
 export async function GET() {
 
   const rows = db.prepare(`
     SELECT title, source
     FROM posts
-  `).all() as PostRow[]
+  `).all() as any[]
 
   const map: Record<string, any[]> = {}
 
@@ -35,4 +30,5 @@ export async function GET() {
     }))
 
   return NextResponse.json(result)
+
 }
