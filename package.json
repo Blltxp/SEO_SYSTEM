@@ -1,0 +1,45 @@
+{
+  "name": "seo-system",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "scan": "tsx scripts/scan.ts",
+    "schedule": "tsx scripts/runScheduledJobs.ts",
+    "detect": "tsx scripts/detectDuplicate.ts",
+    "cannibal": "tsx scripts/detectKeywordCannibalization.ts",
+    "update-keywords": "tsx scripts/updateKeywords.ts",
+    "check-ranking": "tsx scripts/checkRanking.ts",
+    "check-ranking-local": "tsx scripts/checkRankingLocal.ts"
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "better-sqlite3": "^12.6.2",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
+    "html-to-image": "^1.11.13",
+    "next": "16.1.6",
+    "node-cron": "^4.2.1",
+    "openai": "^6.27.0",
+    "puppeteer": "^24.38.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "recharts": "^3.8.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
