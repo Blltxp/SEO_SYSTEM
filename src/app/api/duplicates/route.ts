@@ -19,8 +19,8 @@ export async function GET(request: Request) {
   const validDays =
     sinceDays != null && sinceDays > 0 && sinceDays <= 365 ? sinceDays : undefined
 
-  const titleDuplicates = detectTitleDuplicates(validDays)
-  const contentDuplicates = detectContentDuplicates(0.8, 500, validDays)
+  const titleDuplicates = await detectTitleDuplicates(validDays)
+  const contentDuplicates = await detectContentDuplicates(0.8, 500, validDays)
   const result: DuplicatesResponse = {
     titleDuplicates,
     contentDuplicates

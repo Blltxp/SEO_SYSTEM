@@ -3,7 +3,7 @@ import { runRankCheck } from "../lib/ranking"
 import { GoogleChallengeError } from "../lib/googleRank"
 
 runRankCheck({
-  delayBetweenKeywordsMs: 2000,
+  delayBetweenKeywordsMs: 4000,
   onProgress: (keyword, i, total) => {
     console.log(`[${i}/${total}] เช็ค keyword: ${keyword}`)
   }

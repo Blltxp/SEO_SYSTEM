@@ -15,6 +15,7 @@ type LatestResponse = {
   rows: RankRow[]
   previousRecordedAt?: string
   previousRows?: RankRow[]
+  availableRecordedDates?: string[]
 }
 type TableMode = "daily" | "executive"
 
@@ -23,6 +24,9 @@ export default function RankingPage() {
   const [rows, setRows] = useState<RankRow[]>([])
   const [previousRecordedAt, setPreviousRecordedAt] = useState("")
   const [previousRows, setPreviousRows] = useState<RankRow[]>([])
+  const [availableRecordedDates, setAvailableRecordedDates] = useState<string[]>([])
+  const [viewRecordedAt, setViewRecordedAt] = useState("")
+  const [compareRecordedAt, setCompareRecordedAt] = useState("")
   const [keywords, setKeywords] = useState<string[]>([])
   const [sites, setSites] = useState<{ slug: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,29 +35,38 @@ export default function RankingPage() {
   const [savingManual, setSavingManual] = useState(false)
   const [exportingImage, setExportingImage] = useState(false)
   const [savingFile, setSavingFile] = useState(false)
+  const [imageExportLayout, setImageExportLayout] = useState(false)
   const [tableMode, setTableMode] = useState<TableMode>("executive")
   const [manualDrafts, setManualDrafts] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const exportRef = useRef<HTMLDivElement | null>(null)
 
   const fetchLatest = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (viewRecordedAt) params.set("recordedAt", viewRecordedAt)
+    if (compareRecordedAt) params.set("compareTo", compareRecordedAt)
+    const latestUrl = `/api/ranking/latest?${params.toString()}`
+
     const [latestRes, kwRes, sitesRes] = await Promise.all([
-      fetch("/api/ranking/latest"),
+      fetch(latestUrl),
       fetch("/api/keywords"),
       fetch("/api/sites")
     ])
-    const latest: LatestResponse = latestRes.ok
-      ? await latestRes.json()
-      : { recordedAt: "", rows: [], previousRecordedAt: "", previousRows: [] }
-    const kw = kwRes.ok ? await kwRes.json() : []
-    const st = sitesRes.ok ? await sitesRes.json() : []
+    if (!latestRes.ok) throw new Error("โหลดข้อมูลอันดับล่าสุดไม่สำเร็จ")
+    if (!kwRes.ok) throw new Error("โหลดรายการ keyword ไม่สำเร็จ")
+    if (!sitesRes.ok) throw new Error("โหลดรายชื่อเว็บไม่สำเร็จ")
+
+    const latest: LatestResponse = await latestRes.json()
+    const kw = await kwRes.json()
+    const st = await sitesRes.json()
     setRecordedAt(latest.recordedAt || "")
     setRows(latest.rows || [])
     setPreviousRecordedAt(latest.previousRecordedAt || "")
     setPreviousRows(latest.previousRows || [])
+    setAvailableRecordedDates(latest.availableRecordedDates || [])
     setKeywords(kw)
     setSites(st)
-  }, [])
+  }, [viewRecordedAt, compareRecordedAt])
 
   useEffect(() => {
     setLoading(true)
@@ -153,14 +166,37 @@ export default function RankingPage() {
   const handleExportImage = async () => {
     if (!exportRef.current) return
     setExportingImage(true)
+    setImageExportLayout(true)
     setError(null)
     const hiddenElements = Array.from(exportRef.current.querySelectorAll<HTMLElement>('[data-export-hide="true"]'))
+    let exportStage: HTMLDivElement | null = null
     try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       hiddenElements.forEach((el) => {
         el.dataset.previousDisplay = el.style.display
         el.style.display = "none"
       })
-      const dataUrl = await toPng(exportRef.current, {
+
+      const exportClone = exportRef.current.cloneNode(true) as HTMLDivElement
+      exportClone.style.margin = "0"
+      exportClone.style.width = "fit-content"
+      exportClone.style.maxWidth = "none"
+      exportClone.style.display = "inline-block"
+
+      exportStage = document.createElement("div")
+      exportStage.style.position = "fixed"
+      exportStage.style.left = "-10000px"
+      exportStage.style.top = "0"
+      exportStage.style.padding = "24px"
+      exportStage.style.background = "#0b0b0b"
+      exportStage.style.display = "inline-block"
+      exportStage.style.width = "max-content"
+      exportStage.style.pointerEvents = "none"
+      exportStage.appendChild(exportClone)
+      document.body.appendChild(exportStage)
+
+      const dataUrl = await toPng(exportClone, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#0b0b0b"
@@ -176,15 +212,20 @@ export default function RankingPage() {
         el.style.display = el.dataset.previousDisplay ?? ""
         delete el.dataset.previousDisplay
       })
+      exportStage?.remove()
+      setImageExportLayout(false)
       setExportingImage(false)
     }
   }
 
-  const handleSaveFile = () => {
+  const handleSaveFile = async () => {
     if (!exportRef.current) return
     setSavingFile(true)
+    setImageExportLayout(true)
     setError(null)
     try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       const reportHtml = exportRef.current.innerHTML
       const printWindow = window.open("", "_blank", "width=1400,height=900")
       if (!printWindow) {
@@ -196,21 +237,202 @@ export default function RankingPage() {
     <meta charset="utf-8" />
     <title>Ranking Report</title>
     <style>
-      body { font-family: Arial, sans-serif; background: #0b0b0b; color: #f3f4f6; margin: 24px; }
-      h1, h2, h3 { color: #f6d06b; }
-      table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      th, td { border: 1px solid #3f3f46; padding: 8px; vertical-align: top; }
-      th { background: #111111; color: #f6d06b; }
-      .text-emerald-300, .text-emerald-400\\/80 { color: #86efac !important; }
-      .text-amber-200, .text-amber-300\\/80, .text-amber-100 { color: #fde68a !important; }
-      .text-orange-300, .text-orange-400\\/80 { color: #fdba74 !important; }
-      .text-rose-300, .text-rose-400\\/80 { color: #fda4af !important; }
-      .text-zinc-400, .text-zinc-500, .text-zinc-300, .text-zinc-100 { color: #e4e4e7 !important; }
-      .bg-zinc-950\\/90, .bg-zinc-950\\/85, .bg-zinc-900\\/80, .bg-zinc-900\\/70, .bg-black\\/40 { background: transparent !important; }
-      .border, .shadow-sm, .shadow-\\[0_12px_40px_rgba\\(0\\,0\\,0\\,0\\.35\\)\\] { box-shadow: none !important; }
+      @page { size: A4 landscape; margin: 12mm; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        background: #ffffff;
+        color: #111827;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      h1, h2, h3 {
+        color: #111827;
+        margin: 0;
+      }
+      .rounded-2xl {
+        border-radius: 12px !important;
+      }
+      .backdrop-blur {
+        backdrop-filter: none !important;
+      }
+      .shadow-\\[0_12px_40px_rgba\\(0\\,0\\,0\\,0\\.35\\)\\],
+      .shadow-sm {
+        box-shadow: none !important;
+      }
+      .mb-6, .mb-4 {
+        margin-bottom: 0 !important;
+      }
+      .border-amber-500\\/15,
+      .border-amber-500\\/10,
+      .border-amber-500\\/20,
+      .border-zinc-700 {
+        border-color: #d1d5db !important;
+      }
+      .bg-zinc-950\\/85,
+      .bg-zinc-950\\/90,
+      .bg-zinc-950\\/95,
+      .bg-zinc-900\\/80,
+      .bg-zinc-900\\/70,
+      .bg-black\\/40 {
+        background: transparent !important;
+      }
+      .text-amber-100,
+      .text-amber-200,
+      .text-amber-300\\/80,
+      .text-amber-50,
+      .text-zinc-100,
+      .text-zinc-200,
+      .text-zinc-300,
+      .text-zinc-400,
+      .text-zinc-500,
+      .text-zinc-600 {
+        color: #111827 !important;
+      }
+      .text-emerald-300,
+      .text-emerald-400\\/80 { color: #047857 !important; }
+      .text-red-300,
+      .text-rose-300,
+      .text-rose-400\\/80 { color: #b91c1c !important; }
+      .text-orange-300,
+      .text-orange-400\\/80 { color: #c2410c !important; }
+      .text-sky-400 { color: #1d4ed8 !important; }
+      .hover\\:underline:hover { text-decoration: none !important; }
+      .mx-auto.w-fit,
+      .mx-auto {
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      .w-fit { width: fit-content !important; }
+      .max-w-3xl { max-width: none !important; }
+      .rounded-lg {
+        border-radius: 8px !important;
+      }
+      table {
+        width: auto !important;
+        min-width: 100% !important;
+        border-collapse: collapse;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      th, td {
+        border: 1px solid #d1d5db;
+        padding: 6px 8px;
+        vertical-align: middle;
+        text-align: center;
+      }
+      th {
+        background: #f3f4f6 !important;
+        color: #111827 !important;
+        font-weight: 700;
+      }
+      td {
+        background: #ffffff !important;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      .bg-emerald-950\\/35, .bg-emerald-950\\/30 {
+        background: #dff7ea !important;
+      }
+      .bg-amber-950\\/30, .bg-amber-950\\/20 {
+        background: #fff2cc !important;
+      }
+      .bg-orange-950\\/25 {
+        background: #ffe4c7 !important;
+      }
+      .bg-rose-950\\/25 {
+        background: #ffd6d6 !important;
+      }
+      .bg-zinc-900\\/60 {
+        background: #f3f4f6 !important;
+      }
+      .font-medium {
+        font-weight: 700 !important;
+      }
+      .text-emerald-300,
+      .text-emerald-400\\/80 {
+        color: #047857 !important;
+      }
+      .text-amber-100,
+      .text-amber-200,
+      .text-amber-300\\/80 {
+        color: #92400e !important;
+      }
+      .text-orange-200,
+      .text-orange-300,
+      .text-orange-300\\/80,
+      .text-orange-400\\/80 {
+        color: #c2410c !important;
+      }
+      .text-rose-200,
+      .text-rose-300,
+      .text-rose-300\\/80,
+      .text-rose-400\\/80,
+      .text-red-300 {
+        color: #b91c1c !important;
+      }
+      .text-zinc-400,
+      .text-zinc-500 {
+        color: #374151 !important;
+      }
+      .text-zinc-300,
+      .text-zinc-100 {
+        color: #111827 !important;
+      }
+      td .text-xs,
+      td .text-\\[10px\\],
+      td .text-\\[9px\\],
+      td .text-\\[8px\\] {
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+      td .text-emerald-300,
+      td .text-red-300,
+      td .text-zinc-400 {
+        font-size: 12px !important;
+        font-weight: 800 !important;
+      }
+      td .text-sky-400 {
+        color: #1d4ed8 !important;
+      }
+      td span,
+      td a {
+        vertical-align: middle;
+      }
+      td > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+      td:first-child > div {
+        align-items: flex-start;
+      }
+      .sticky {
+        position: static !important;
+      }
+      .overflow-x-auto,
+      .overflow-visible {
+        overflow: visible !important;
+      }
+      .line-clamp-2 {
+        display: block !important;
+        -webkit-line-clamp: unset !important;
+        -webkit-box-orient: unset !important;
+        overflow: visible !important;
+      }
       input, button, a[href^="/"], a[href^="javascript"] { display: none !important; }
       [data-export-hide="true"] { display: none !important; }
-      @media print { body { margin: 0; } }
+      a {
+        color: #1d4ed8 !important;
+        text-decoration: none !important;
+      }
+      @media print {
+        body { margin: 0; }
+      }
     </style>
   </head>
   <body>${reportHtml}</body>
@@ -221,6 +443,7 @@ export default function RankingPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "save เป็นไฟล์ไม่สำเร็จ")
     } finally {
+      setImageExportLayout(false)
       setSavingFile(false)
     }
   }
@@ -310,18 +533,20 @@ export default function RankingPage() {
     ? {
         label: "โหมดรายงานผู้บริหาร",
         compact: true,
-        tableClass: "w-full table-fixed text-left text-[9px] leading-none",
-        keywordWidth: "w-[112px]",
-        keywordCell: "px-1.5 py-1",
-        headCell: "px-1 py-1.5",
-        siteWidth: "w-[76px]",
-        siteLabelWidth: "max-w-[68px]",
-        bodyCell: "px-1 py-1 align-top",
-        inputWidth: "w-12"
+        wrapperClass: "overflow-x-auto",
+        tableClass: "mx-auto table-fixed text-left text-[10px] leading-tight",
+        keywordWidth: "w-[152px]",
+        keywordCell: "px-2 py-1.5",
+        headCell: "px-1.5 py-2",
+        siteWidth: "w-[98px]",
+        siteLabelWidth: "max-w-[90px]",
+        bodyCell: "px-1 py-1.5 align-top",
+        inputWidth: "w-14"
       }
     : {
         label: "โหมดใช้งานทุกวัน",
         compact: false,
+        wrapperClass: "overflow-x-auto",
         tableClass: "w-full table-fixed text-left text-[11px] leading-tight sm:text-xs",
         keywordWidth: "w-[150px]",
         keywordCell: "px-3 py-2",
@@ -334,7 +559,7 @@ export default function RankingPage() {
 
   if (loading) {
     return (
-      <PageLayout title="Keyword Ranking Tracker" description="อันดับ Google 19 keyword × 6 เว็บ">
+      <PageLayout title="Keyword Ranking Tracker" description="อันดับ Google 19 keyword × 6 เว็บ" titleAlign="center">
         <div className="flex items-center gap-2 text-zinc-500">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
           กำลังโหลด…
@@ -347,6 +572,7 @@ export default function RankingPage() {
     <PageLayout
       title="Keyword Ranking Tracker"
       maxWidth="full"
+      titleAlign="center"
     >
       <div className="mb-4 flex flex-wrap items-center gap-2" data-export-hide="true">
         <span className="text-sm text-zinc-400">รูปแบบตาราง:</span>
@@ -368,17 +594,50 @@ export default function RankingPage() {
           {tableLayout.compact ? "สรุปเต็มจอ เน้นดูครบทุก keyword" : "อ่านง่าย รายละเอียดครบกว่า"}
         </span>
       </div>
-      <div ref={exportRef}>
-        <Card className="mb-6">
+      <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
+        <Card className={`mb-6 ${imageExportLayout ? "mx-auto w-fit" : ""}`}>
         <CardHeader
           title="ตารางอันดับล่าสุด (SEO Rank)"
           subtitle={
             recordedAt
-              ? `ข้อมูลล่าสุด: ${formatRecordedAt(recordedAt)}${previousRecordedAt ? ` | รอบก่อนหน้า: ${formatRecordedAt(previousRecordedAt)}` : ""} | ${tableLayout.label}`
+              ? `ข้อมูลล่าสุด: ${formatRecordedAt(recordedAt)}${previousRecordedAt ? ` | รอบเปรียบเทียบ: ${formatRecordedAt(previousRecordedAt)}` : ""}${imageExportLayout ? "" : ` | ${tableLayout.label}`}`
               : undefined
           }
+          align={imageExportLayout ? "center" : "left"}
           action={
             <div className="flex flex-wrap items-center gap-2" data-export-hide="true">
+              <label className="flex items-center gap-2 text-sm text-zinc-400">
+                <span>ดูข้อมูลวันที่:</span>
+                <select
+                  value={viewRecordedAt}
+                  onChange={(e) => setViewRecordedAt(e.target.value)}
+                  className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+                  disabled={checking || savingManual || exportingImage || savingFile}
+                >
+                  <option value="">ล่าสุด</option>
+                  {availableRecordedDates.map((value) => (
+                    <option key={value} value={value}>
+                      {formatRecordedAt(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-400">
+                <span>เทียบกับ:</span>
+                <select
+                  value={compareRecordedAt}
+                  onChange={(e) => setCompareRecordedAt(e.target.value)}
+                  className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+                  disabled={checking || savingManual || exportingImage || savingFile}
+                >
+                  <option value="">รอบก่อนหน้าอัตโนมัติ</option>
+                  {availableRecordedDates.filter((v) => v !== recordedAt).map((value) => (
+                    <option key={value} value={value}>
+                      {formatRecordedAt(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <Button onClick={handleCheck} loading={checking} disabled={checking || savingManual}>
                 เช็คอันดับตอนนี้
               </Button>
@@ -436,7 +695,7 @@ export default function RankingPage() {
             </div>
           )}
           {checking ? (
-            <div className="overflow-x-auto">
+            <div className={imageExportLayout ? "overflow-visible" : tableLayout.wrapperClass}>
               <table className={tableLayout.tableClass}>
                 <thead>
                   <tr className="border-b border-amber-500/10">
@@ -449,7 +708,7 @@ export default function RankingPage() {
                         className={`${tableLayout.siteWidth} bg-zinc-950/90 text-center font-medium text-amber-100 ${tableLayout.headCell}`}
                       >
                         <div
-                          className={`mx-auto flex min-h-[2rem] ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.05]" : "whitespace-normal leading-tight"}`}
+                          className={`mx-auto flex ${tableLayout.compact ? "min-h-[2rem]" : "min-h-[2rem]"} ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.15]" : "whitespace-normal leading-tight"}`}
                         >
                           {s.name}
                         </div>
@@ -484,7 +743,7 @@ export default function RankingPage() {
               <code className="rounded bg-zinc-200 px-1.5 py-0.5 dark:bg-zinc-700">npm run check-ranking</code>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className={imageExportLayout ? "overflow-visible" : tableLayout.wrapperClass}>
               <table className={tableLayout.tableClass}>
                 <thead>
                   <tr className="border-b border-amber-500/10">
@@ -497,7 +756,7 @@ export default function RankingPage() {
                         className={`${tableLayout.siteWidth} bg-zinc-950/90 text-center font-medium text-amber-100 ${tableLayout.headCell}`}
                       >
                         <div
-                          className={`mx-auto flex min-h-[2rem] ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.05]" : "whitespace-normal leading-tight"}`}
+                          className={`mx-auto flex ${tableLayout.compact ? "min-h-[2rem]" : "min-h-[2rem]"} ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.15]" : "whitespace-normal leading-tight"}`}
                         >
                           {s.name}
                         </div>
@@ -510,7 +769,7 @@ export default function RankingPage() {
                     <tr key={kw} className="border-b border-amber-500/5">
                       <td className={`sticky left-0 z-10 bg-zinc-950/95 font-medium text-zinc-100 ${tableLayout.keywordCell}`}>
                         <div
-                          className={tableLayout.compact ? "line-clamp-2 break-words leading-[1.05]" : "whitespace-normal break-words leading-tight"}
+                          className={tableLayout.compact ? "line-clamp-2 break-words leading-[1.12]" : "whitespace-normal break-words leading-tight"}
                           title={kw}
                         >
                           {kw}
@@ -536,7 +795,7 @@ export default function RankingPage() {
                                   </span>
                                   {tableLayout.compact ? (
                                     trend ? (
-                                      <span className={`text-[9px] font-medium ${trend.className}`} title={trend.label}>
+                                      <span className={`text-[11px] font-semibold ${trend.className}`} title={trend.label}>
                                         {trend.icon}
                                       </span>
                                     ) : null
@@ -544,7 +803,7 @@ export default function RankingPage() {
                                     <>
                                       {rank > 10 && <span className="text-xs text-zinc-500">อันดับรวม #{rank}</span>}
                                       {trend && (
-                                        <span className={`mt-1 text-[10px] font-medium ${trend.className}`} title={trend.label}>
+                                        <span className={`mt-1 text-[11px] font-semibold ${trend.className}`} title={trend.label}>
                                           {trend.icon} {trend.label}
                                         </span>
                                       )}
@@ -566,7 +825,7 @@ export default function RankingPage() {
                                 <div className={tableLayout.compact ? "flex items-center justify-center gap-1" : "flex flex-col items-center text-center"}>
                                   <span>-</span>
                                   {trend && (
-                                    <span className={`${tableLayout.compact ? "text-[9px]" : "mt-1 text-[10px]"} font-medium ${trend.className}`} title={trend.label}>
+                                    <span className={`${tableLayout.compact ? "text-[11px]" : "mt-1 text-[11px]"} font-semibold ${trend.className}`} title={trend.label}>
                                       {tableLayout.compact ? trend.icon : `${trend.icon} ${trend.label}`}
                                     </span>
                                   )}
@@ -579,7 +838,7 @@ export default function RankingPage() {
                                 value={draftValue}
                                 onChange={(e) => handleManualDraftChange(kw, s.slug, e.target.value)}
                                 placeholder={displayManualFormat(rank)}
-                                className={`mx-auto mt-1 block ${tableLayout.inputWidth} rounded-md border border-zinc-700 bg-black/40 px-1.5 py-0.5 text-center text-[10px] text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none`}
+                                className={`mx-auto mt-1 block ${tableLayout.inputWidth} rounded-md border border-zinc-700 bg-black/40 px-2 py-1 text-center text-[10px] text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none`}
                               />
                             )}
                           </td>

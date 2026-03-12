@@ -14,7 +14,10 @@
     "cannibal": "tsx scripts/detectKeywordCannibalization.ts",
     "update-keywords": "tsx scripts/updateKeywords.ts",
     "check-ranking": "tsx scripts/checkRanking.ts",
-    "check-ranking-local": "tsx scripts/checkRankingLocal.ts"
+    "check-ranking-local": "tsx scripts/checkRankingLocal.ts",
+    "migrate-sqlite-to-pg": "tsx scripts/migrateSqliteToPostgres.ts",
+    "migrate-to-neon": "tsx scripts/migrateToNeon.ts",
+    "cleanup-rank-history": "tsx scripts/cleanupRankHistory.ts"
   },
   "dependencies": {
     "axios": "^1.13.6",
@@ -22,20 +25,28 @@
     "cheerio": "^1.2.0",
     "dotenv": "^17.3.1",
     "html-to-image": "^1.11.13",
+    "html2canvas-pro": "^2.0.2",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "node-cron": "^4.2.1",
     "openai": "^6.27.0",
+    "pg": "^8.20.0",
     "puppeteer": "^24.38.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
+    "recharts-to-png": "^3.0.1",
     "rss-parser": "^3.13.0"
+  },
+  "overrides": {
+    "html2canvas": "html2canvas-pro"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.37",
+    "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

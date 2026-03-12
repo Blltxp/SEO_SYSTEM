@@ -15,7 +15,7 @@
 - **VPS / รันบนเครื่องที่เปิด 24 ชม.** — รัน `npm run build` แล้ว `npm start` (หรือใช้ PM2)
 - **Railway, Render ฯลฯ** — deploy ตามที่บริการกำหนด
 
-หมายเหตุ: แอปใช้ **SQLite** (ไฟล์ในโฟลเดอร์) ถ้า deploy บน Vercel/Railway ข้อมูลจะ reset เมื่อ redeploy เว้นแต่จะเปลี่ยนไปใช้ DB ภายนอก (เช่น Turso/SQLite ใน cloud) ถ้า deploy บน VPS และเก็บไฟล์ DB ไว้ในเครื่อง ข้อมูลจะอยู่ได้เรื่อยๆ
+หมายเหตุ: แอปรองรับ **Neon (PostgreSQL Cloud)** — แนะนำตั้งตาม [CLOUD_SETUP.md](../CLOUD_SETUP.md) แล้วใส่ `DATABASE_URL` ใน Environment Variables ของเซิร์ฟเวอร์ deploy
 
 ### 2. ตั้งค่า Google Custom Search API (บนเซิร์ฟเวอร์)
 

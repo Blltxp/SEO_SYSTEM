@@ -86,6 +86,12 @@ export default function ArticleTitlesPage() {
   }, [filterSite])
 
   useEffect(() => {
+    if (filterKeyword && !keywords.includes(filterKeyword)) {
+      setFilterKeyword("")
+    }
+  }, [filterKeyword, keywords])
+
+  useEffect(() => {
     setLoading(true)
     const params = new URLSearchParams()
     if (filterKeyword) params.set("keyword", filterKeyword)
@@ -96,17 +102,18 @@ export default function ArticleTitlesPage() {
         if (!res.ok) throw new Error("โหลดไม่สำเร็จ")
         return res.json()
       })
-      .then(setSuggestions)
+      .then((data) => setSuggestions(Array.isArray(data) ? data : []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [filterKeyword, filterSite, excludeExisting])
 
+  const suggestionsList = Array.isArray(suggestions) ? suggestions : []
   const byKeyword = (filterKeyword
     ? [filterKeyword]
     : keywords
   ).map((kw) => ({
     keyword: kw,
-    items: suggestions.filter((s) => s.keyword === kw)
+    items: suggestionsList.filter((s) => s.keyword === kw)
   })).filter((g) => g.items.length > 0)
 
   const visibleRecommendations = notOnPage1List.filter((item) => {

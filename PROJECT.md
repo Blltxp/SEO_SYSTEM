@@ -82,6 +82,6 @@ seo-system
 
 - **Next.js** — เว็บ + API
 - **Node.js** — สคริปต์ + cron
-- **SQLite (better-sqlite3)** — เก็บ posts / keywords / rankings
+- **ฐานข้อมูล** — SQLite (เริ่มต้น) หรือ PostgreSQL/Neon (ดู CLOUD_SETUP.md)
 - **node-cron** — ตั้งเวลา scan
 - (RSS Parser — ใช้เมื่อมีเว็บที่ดึงแบบ RSS)

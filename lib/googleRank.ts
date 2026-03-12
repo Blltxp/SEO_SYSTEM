@@ -21,6 +21,13 @@ export class GoogleChallengeError extends Error {
   }
 }
 
+export class GoogleRankFetchError extends Error {
+  constructor(message = "Google ranking check failed") {
+    super(message)
+    this.name = "GoogleRankFetchError"
+  }
+}
+
 const GOOGLE_BASE = "https://www.google.co.th/"
 const RESULTS_PER_PAGE = 10
 const DEFAULT_MAX_SEARCH_PAGES = 2
@@ -28,7 +35,7 @@ const PAGE_DELAY_MS = 800
 const CHALLENGE_POLL_MS = 1500
 const CHALLENGE_TIMEOUT_MS = 10 * 60 * 1000
 
-type SearchVariant = "classic" | "web"
+type SearchVariant = "web"
 
 type GoogleRankChallengeContext = {
   keyword: string
@@ -54,7 +61,7 @@ function buildGoogleSearchUrl(keyword: string, variant: SearchVariant = "web", s
     pws: "0"
   })
   if (start > 0) params.set("start", String(start))
-  if (variant === "web") params.set("udm", "14")
+  params.set("udm", "14")
   return `${GOOGLE_BASE}search?${params.toString()}`
 }
 
@@ -108,8 +115,8 @@ export function extractSearchResultUrls(html: string): string[] {
     }
   }
 
-  function isLikelyAdAnchor(el: cheerio.AnyNode): boolean {
-    const $a = $(el)
+  function isLikelyAdAnchor(el: unknown): boolean {
+    const $a = $(el as any)
     return (
       isGoogleAdHref($a.attr("data-rw")) ||
       isGoogleAdHref($a.attr("data-pcu")) ||
@@ -185,9 +192,10 @@ export function extractSearchResultUrls(html: string): string[] {
 }
 
 /** คำนวณอันดับ organic (กรองโฆษณา/Facebook/ข่าว/แอป/เว็บหางาน/เว็บจัดอันดับ) แล้วจับคู่เว็บเรา */
-function resultsToOrganicRanks(resultUrls: string[]): RankResult[] {
+async function resultsToOrganicRanks(resultUrls: string[]): Promise<RankResult[]> {
   const ordered = toOrganicOrderedList(resultUrls)
-  const siteSlugs = getSites().map((s) => s.slug)
+  const sites = await getSites()
+  const siteSlugs = sites.map((s) => s.slug)
   const results: RankResult[] = []
   for (const { url, organicRank } of ordered) {
     const slug = getSiteSlugFromUrl(url)
@@ -209,6 +217,13 @@ function mergeRankResults(...lists: RankResult[][]): RankResult[] {
     }
   }
   return Array.from(bestBySite.values()).sort((a, b) => a.rank - b.rank || a.site_slug.localeCompare(b.site_slug))
+}
+
+async function hasFoundAllTrackedSites(results: RankResult[]): Promise<boolean> {
+  const sites = await getSites()
+  const trackedSiteCount = sites.length
+  const foundSites = new Set(results.map((item) => item.site_slug))
+  return foundSites.size >= trackedSiteCount
 }
 
 /**
@@ -357,9 +372,11 @@ export async function createGoogleRankSession(options?: GoogleRankSessionOptions
   async function collectRankResultsAcrossPages(keyword: string, variant: SearchVariant): Promise<{
     results: RankResult[]
     challenged: boolean
+    firstPageEmpty: boolean
   }> {
     const allUrls: string[] = []
     let challenged = false
+    let firstPageEmpty = false
     const maxPages = Math.max(1, options?.maxPages ?? DEFAULT_MAX_SEARCH_PAGES)
 
     for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
@@ -370,6 +387,7 @@ export async function createGoogleRankSession(options?: GoogleRankSessionOptions
       const urls = extractSearchResultUrls(pageResult.html)
       if (urls.length === 0) {
         if (pageIndex === 0) {
+          firstPageEmpty = true
           break
         }
         break
@@ -377,26 +395,31 @@ export async function createGoogleRankSession(options?: GoogleRankSessionOptions
 
       allUrls.push(...urls)
 
+      if (pageIndex === 0) {
+        const currentResults = await resultsToOrganicRanks(allUrls)
+        if (await hasFoundAllTrackedSites(currentResults)) {
+          break
+        }
+      }
+
       if (pageIndex < maxPages - 1) {
         await delay(PAGE_DELAY_MS)
       }
     }
 
     return {
-      results: resultsToOrganicRanks(allUrls),
-      challenged
+      results: await resultsToOrganicRanks(allUrls),
+      challenged,
+      firstPageEmpty
     }
   }
 
   async function checkKeywordRankInSession(keyword: string): Promise<RankResult[]> {
-    const classic = await collectRankResultsAcrossPages(keyword, "classic")
-
-    if (classic.results.length >= 3 && !classic.challenged) {
-      return classic.results
-    }
-
     const web = await collectRankResultsAcrossPages(keyword, "web")
-    return mergeRankResults(classic.results, web.results)
+    if (web.firstPageEmpty && !web.challenged) {
+      throw new GoogleRankFetchError(`Google returned no parsable results for keyword "${keyword}"`)
+    }
+    return web.results
   }
 
   return {
@@ -411,7 +434,7 @@ export async function createGoogleRankSession(options?: GoogleRankSessionOptions
 /**
  * เช็คอันดับ 1 keyword ใน Google
  * - ถ้ามี GOOGLE_CSE_API_KEY + GOOGLE_CSE_CX จะใช้ Custom Search API
- * - ไม่เช่นนั้นใช้ Puppeteer ยิงทั้ง Google แบบปกติ + Web Search แล้ว merge ผล
+ * - ไม่เช่นนั้นใช้ Puppeteer ยิง Google Web Search อย่างเดียว
  * อันดับที่คืนนับเฉพาะ organic (ไม่นับโฆษณา, Facebook, ข่าว, แอป, เว็บหางาน, เว็บจัดอันดับ)
  */
 export async function checkKeywordRank(keyword: string): Promise<RankResult[]> {
@@ -438,21 +461,37 @@ export function isGoogleCseConfigured(): boolean {
 export async function checkKeywordRankViaAPI(keyword: string): Promise<RankResult[]> {
   const key = process.env.GOOGLE_CSE_API_KEY
   const cx = process.env.GOOGLE_CSE_CX
-  if (!key || !cx) return []
-
-  const params = new URLSearchParams({
-    key,
-    cx,
-    q: keyword,
-    num: "10"
-  })
-  const res = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`)
-  if (!res.ok) return []
-  const data = (await res.json()) as {
-    items?: Array<{ link: string }>
+  if (!key || !cx) {
+    throw new GoogleRankFetchError("Google CSE is not configured")
   }
-  const urls = (data.items ?? []).map((i) => i.link)
-  return resultsToOrganicRanks(urls)
+
+  const fetchPage = async (start: number) => {
+    const params = new URLSearchParams({
+      key,
+      cx,
+      q: keyword,
+      num: "10",
+      start: String(start)
+    })
+    const res = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`)
+    if (!res.ok) {
+      throw new GoogleRankFetchError(`Google CSE request failed with status ${res.status}`)
+    }
+    const data = (await res.json()) as {
+      items?: Array<{ link: string }>
+      error?: { message?: string }
+    }
+    if (data.error?.message) {
+      throw new GoogleRankFetchError(data.error.message)
+    }
+    return (data.items ?? []).map((i) => i.link)
+  }
+
+  const urls = [
+    ...(await fetchPage(1)),
+    ...(await fetchPage(11))
+  ]
+  return await resultsToOrganicRanks(urls)
 }
 
 /** keyword ที่เป้าหมายคือ "ไม่ให้เจอเว็บเรา" (เพื่อภาพลักษณ์) */

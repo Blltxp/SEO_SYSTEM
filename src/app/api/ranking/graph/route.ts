@@ -12,6 +12,6 @@ export async function GET(request: Request) {
       { status: 400 }
     )
   }
-  const rows = getRankHistoryForGraph(keyword, fromDate, toDate)
+  const rows = await getRankHistoryForGraph(keyword, fromDate, toDate)
   return NextResponse.json(rows)
 }

@@ -5,13 +5,13 @@ async function run() {
 
   console.log("Checking title duplicates...\n")
 
-  const titleDup = detectTitleDuplicates()
+  const titleDup = await detectTitleDuplicates()
 
   console.log("Title duplicates:", titleDup.length)
 
   console.log("\nChecking content similarity...\n")
 
-  const contentDup = detectContentDuplicates(0.8)
+  const contentDup = await detectContentDuplicates(0.8)
 
   if (contentDup.length === 0) {
 

@@ -1,4 +1,4 @@
-import { db } from "./db"
+import { db, getDateFilterFragment } from "./db"
 import { cosineSimilarity } from "./similarity"
 
 export type DuplicateTitle = {
@@ -8,38 +8,34 @@ export type DuplicateTitle = {
 }
 
 /** ถ้า sinceDays กำหนด = ดูเฉพาะบทความที่ลงภายใน N วันที่ผ่านมา (ใช้ดู "รอบนี้ไม่ให้ซ้ำ") */
-export function detectTitleDuplicates(sinceDays?: number): DuplicateTitle[] {
+export async function detectTitleDuplicates(sinceDays?: number): Promise<DuplicateTitle[]> {
   const where =
     sinceDays != null
-      ? `WHERE date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
+      ? `WHERE ${getDateFilterFragment(sinceDays)}`
       : ""
-  const rows = db.prepare(`
-    SELECT title, COUNT(*) as count
-    FROM posts
-    ${where}
-    GROUP BY title
-    HAVING count > 1
-  `).all() as any[]
+  const rows = (await db
+    .prepare(
+      `SELECT title, COUNT(*) as count FROM posts ${where}
+       GROUP BY title HAVING count > 1`
+    )
+    .all()) as { title: string; count: number }[]
 
-  const duplicates: DuplicateTitle[] = []
   const whereTitle = sinceDays != null
-    ? `AND date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
+    ? `AND ${getDateFilterFragment(sinceDays)}`
     : ""
 
+  const duplicates: DuplicateTitle[] = []
+
   for (const row of rows) {
-    const sources = db.prepare(`
-      SELECT source
-      FROM posts
-      WHERE title = ?
-      ${whereTitle}
-    `).all(row.title) as any[]
+    const sources = (await db
+      .prepare(`SELECT source FROM posts WHERE title = ? ${whereTitle}`)
+      .all(row.title)) as { source: string }[]
 
     duplicates.push({
       title: row.title,
       count: row.count,
-      sources: sources.map(s => s.source)
+      sources: sources.map((s) => s.source)
     })
-
   }
 
   return duplicates
@@ -54,34 +50,27 @@ export type ContentDuplicate = {
 }
 
 /** sinceDays = ดูเฉพาะบทความที่ลงภายใน N วันที่ผ่านมา (รอบนี้) */
-export function detectContentDuplicates(
+export async function detectContentDuplicates(
   threshold = 0.8,
   limitPosts = 500,
   sinceDays?: number
-) {
+): Promise<ContentDuplicate[]> {
   const where =
     sinceDays != null
-      ? `WHERE date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
+      ? `WHERE ${getDateFilterFragment(sinceDays)}`
       : ""
-  const posts = db.prepare(`
-    SELECT id, title, content, source
-    FROM posts
-    ${where}
-    ORDER BY id DESC
-    LIMIT ?
-  `).all(limitPosts) as any[]
+  const posts = (await db
+    .prepare(
+      `SELECT id, title, content, source FROM posts ${where}
+       ORDER BY id DESC LIMIT ?`
+    )
+    .all(limitPosts)) as { id: number; title: string; content: string; source: string }[]
 
   const duplicates: ContentDuplicate[] = []
 
   for (let i = 0; i < posts.length; i++) {
-
     for (let j = i + 1; j < posts.length; j++) {
-
-      const sim = cosineSimilarity(
-        posts[i].content,
-        posts[j].content
-      )
-
+      const sim = cosineSimilarity(posts[i].content, posts[j].content)
       if (sim >= threshold) {
         duplicates.push({
           titleA: posts[i].title,
@@ -91,9 +80,7 @@ export function detectContentDuplicates(
           score: sim
         })
       }
-
     }
-
   }
 
   return duplicates

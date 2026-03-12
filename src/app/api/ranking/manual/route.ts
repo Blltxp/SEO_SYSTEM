@@ -25,17 +25,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const recordedAt = body?.recordedAt?.trim() || getLatestRecordedAt()
-    const rows = saveManualRankEntries(recordedAt, entries)
+    const recordedAt = body?.recordedAt?.trim() || (await getLatestRecordedAt())
+    const rows = await saveManualRankEntries(recordedAt, entries)
     return NextResponse.json({
       ok: true,
       recordedAt,
       updated: rows.length
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error"
+    const status =
+      /รอบล่าสุด|กำลังมีการเช็คอันดับอยู่/.test(message)
+        ? 409
+        : 400
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 400 }
+      { ok: false, error: message },
+      { status }
     )
   }
 }

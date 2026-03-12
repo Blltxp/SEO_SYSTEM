@@ -36,7 +36,7 @@ export async function runAutomation() {
     `)
 
     for (const post of posts) {
-      const updated = updateExisting.run(
+      const updated = await updateExisting.run(
         post.title.rendered,
         post.content.rendered,
         post.link,
@@ -46,7 +46,7 @@ export async function runAutomation() {
       )
 
       if (updated.changes === 0) {
-        insertPost.run(
+        await insertPost.run(
           post.id,
           post.title.rendered,
           post.content.rendered,

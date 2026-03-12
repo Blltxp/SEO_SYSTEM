@@ -4,7 +4,7 @@ async function run() {
 
   console.log("Checking keyword cannibalization...\n")
 
-  const conflicts = detectKeywordCannibalization()
+  const conflicts = await detectKeywordCannibalization()
 
   if (conflicts.length === 0) {
 

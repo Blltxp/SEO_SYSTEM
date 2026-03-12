@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const excludeExisting = searchParams.get("excludeExisting") === "1"
   const site = searchParams.get("site")?.trim() || undefined
 
-  const suggestions = getTitleSuggestions({
+  const suggestions = await getTitleSuggestions({
     keyword,
     excludeExisting,
     site

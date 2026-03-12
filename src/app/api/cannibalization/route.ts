@@ -9,6 +9,6 @@ export async function GET(request: Request) {
   const validDays =
     sinceDays != null && sinceDays > 0 && sinceDays <= 365 ? sinceDays : undefined
 
-  const result = detectKeywordCannibalization(validDays)
+  const result = await detectKeywordCannibalization(validDays)
   return NextResponse.json(result)
 }

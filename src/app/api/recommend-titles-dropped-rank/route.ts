@@ -11,6 +11,6 @@ export async function GET(request: Request) {
     100,
     Math.max(1, parseInt(searchParams.get("rankThreshold") || "20", 10) || 20)
   )
-  const list = getTitleRecommendationsForRankGaps(rankThreshold, threshold)
+  const list = await getTitleRecommendationsForRankGaps(rankThreshold, threshold)
   return NextResponse.json(list)
 }

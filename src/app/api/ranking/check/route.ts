@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { runRankCheck } from "@/lib/ranking"
-import { createGoogleRankSession, GoogleChallengeError, waitForGoogleChallengeResolved } from "@/lib/googleRank"
+import { createGoogleRankSession, GoogleChallengeError, GoogleRankFetchError, waitForGoogleChallengeResolved } from "@/lib/googleRank"
 
 export const maxDuration = 900
 
@@ -23,7 +23,7 @@ export async function POST() {
 
   try {
     const { recordedAt, counts } = await runRankCheck({
-      delayBetweenKeywordsMs: 2000,
+      delayBetweenKeywordsMs: 4000,
       checkKeywordRankFn: session?.checkKeywordRank
     })
     return NextResponse.json({
@@ -41,6 +41,15 @@ export async function POST() {
             interactiveLocalMode
               ? "Google ส่งหน้า challenge/captcha กลับมา ระบบเปิด Chrome ให้แล้ว แต่ยังไม่ผ่านภายในเวลาที่กำหนด จึงไม่อัปเดตข้อมูลเพื่อป้องกันการเขียนทับอันดับเดิม"
               : "Google ส่งหน้า challenge/captcha กลับมา รอบนี้จึงไม่อัปเดตข้อมูลเพื่อป้องกันการเขียนทับอันดับเดิม"
+        },
+        { status: 503 }
+      )
+    }
+    if (e instanceof GoogleRankFetchError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Google ส่งผลลัพธ์กลับมาไม่สมบูรณ์หรืออ่านอันดับไม่ได้ รอบนี้จึงไม่อัปเดตข้อมูลเพื่อป้องกันการเขียนทับอันดับเดิม"
         },
         { status: 503 }
       )

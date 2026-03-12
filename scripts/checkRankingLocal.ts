@@ -18,7 +18,7 @@ async function main() {
 
   try {
     const { recordedAt, counts } = await runRankCheck({
-      delayBetweenKeywordsMs: 2500,
+      delayBetweenKeywordsMs: 4000,
       checkKeywordRankFn: session.checkKeywordRank,
       onProgress: (keyword, i, total) => {
         console.log(`[${i}/${total}] เช็ค keyword: ${keyword}`)
