@@ -11,7 +11,7 @@ export type DuplicateTitle = {
 export function detectTitleDuplicates(sinceDays?: number): DuplicateTitle[] {
   const where =
     sinceDays != null
-      ? `WHERE date(created_at) >= date('now', '-${sinceDays} days')`
+      ? `WHERE date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
       : ""
   const rows = db.prepare(`
     SELECT title, COUNT(*) as count
@@ -23,7 +23,7 @@ export function detectTitleDuplicates(sinceDays?: number): DuplicateTitle[] {
 
   const duplicates: DuplicateTitle[] = []
   const whereTitle = sinceDays != null
-    ? `AND date(created_at) >= date('now', '-${sinceDays} days')`
+    ? `AND date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
     : ""
 
   for (const row of rows) {
@@ -61,7 +61,7 @@ export function detectContentDuplicates(
 ) {
   const where =
     sinceDays != null
-      ? `WHERE date(created_at) >= date('now', '-${sinceDays} days')`
+      ? `WHERE date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
       : ""
   const posts = db.prepare(`
     SELECT id, title, content, source

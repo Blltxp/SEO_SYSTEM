@@ -21,7 +21,7 @@ function extractKeyword(title: string): string {
 export function detectKeywordCannibalization(sinceDays?: number): KeywordConflict[] {
   const where =
     sinceDays != null
-      ? `WHERE date(created_at) >= date('now', '-${sinceDays} days')`
+      ? `WHERE date(COALESCE(published_at, created_at)) >= date('now', '-${sinceDays} days')`
       : ""
   const posts = db.prepare(`
     SELECT title, source
