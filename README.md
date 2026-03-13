@@ -154,11 +154,11 @@ flowchart TB
     end
 
     subgraph Dashboard["Dashboard"]
-        R1[/ranking]
-        R2[/ranking/graph]
-        A[/article-titles]
-        D[/duplicates]
-        M[/ranking/manage]
+        R1[ranking]
+        R2[ranking graph]
+        A[article-titles]
+        D[duplicates]
+        M[ranking manage]
     end
 
     WP --> Scan --> Posts
