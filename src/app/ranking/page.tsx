@@ -861,15 +861,7 @@ export default function RankingPage() {
           </div>
         )}
         </Card>
-
       </div>
-
-      <Link
-        href="/ranking/graph"
-        className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900/80 px-4 py-2 text-sm font-medium text-zinc-200 shadow-sm transition hover:border-amber-500/40 hover:text-amber-100"
-      >
-        ดูกราฟเปรียบเทียบ 6 เว็บ →
-      </Link>
     </PageLayout>
   )
 }

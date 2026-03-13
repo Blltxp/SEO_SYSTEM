@@ -302,6 +302,18 @@ export default function RankingGraphPage() {
     })
   }, [chartData, sites])
 
+  const xAxisTicks = useMemo(() => {
+    const n = chartDataForGraph.length
+    if (n <= 7) return undefined
+    const names: string[] = []
+    for (let i = 0; i < 7; i++) {
+      const idx = Math.round((i / 6) * (n - 1))
+      const name = chartDataForGraph[idx]?.name
+      if (typeof name === "string") names.push(name)
+    }
+    return names
+  }, [chartDataForGraph])
+
   const summaryCards = useMemo(() => {
     return sites.map((site) => {
       let up = 0
@@ -729,6 +741,7 @@ export default function RankingGraphPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
                         <XAxis
                           dataKey="name"
+                          ticks={xAxisTicks}
                           tick={{ fontSize: 10, fill: "#d4d4d8" }}
                           tickFormatter={(value) => formatRecordedAt(String(value))}
                           height={40}
@@ -783,6 +796,7 @@ export default function RankingGraphPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
                         <XAxis
                           dataKey="name"
+                          ticks={xAxisTicks}
                           tick={{ fontSize: 10, fill: "#d4d4d8" }}
                           tickFormatter={(value) => formatRecordedAt(String(value))}
                           height={44}

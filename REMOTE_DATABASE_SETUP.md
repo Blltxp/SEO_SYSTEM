@@ -338,7 +338,6 @@ sudo firewall-cmd --reload
 
 - `lib/db.ts` – สร้างตาราง, migration, seed (sites, keywords)
 - `lib/ranking.ts` – rank_history, app_locks
-- `lib/keyword.ts` – posts (สำหรับ cannibalization)
 - `lib/titleSuggestions.ts` – posts
 - `lib/rankDrop.ts` – rank_history
 - `lib/duplicate.ts` – posts

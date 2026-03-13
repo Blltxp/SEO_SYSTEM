@@ -1,6 +1,6 @@
 # SEO System
 
-ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), ตรวจบทความซ้ำ, Keyword Cannibalization และแนะนำหัวข้อบทความ
+ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), ตรวจบทความซ้ำ และแนะนำหัวข้อบทความ
 
 ---
 
@@ -16,7 +16,6 @@
 ### 2. Article Intelligence System
 - **ดึงบทความ** — จาก WordPress API / RSS (6 เว็บ)
 - **ตรวจบทความซ้ำ** — หัวข้อซ้ำ, เนื้อหาคล้าย (cosine similarity)
-- **Keyword Cannibalization** — แจ้งเตือนเมื่อหลายบทความแข่ง keyword เดียวกัน
 - **หัวข้อบทความแนะนำ** — แนะนำเมื่อเว็บยังไม่อยู่หน้า 1 (ใช้ข้อมูล rank จริง)
 
 ---
@@ -52,7 +51,6 @@ seo-system/
 │   │   ├── ranking/       # ตารางอันดับ + กราฟ
 │   │   ├── article-titles/# หัวข้อบทความแนะนำ
 │   │   ├── duplicates/    # รายงานบทความซ้ำ
-│   │   ├── cannibalization/# Keyword Cannibalization
 │   │   └── api/           # API routes
 │   └── components/        # Sidebar, PageLayout, Card, Button
 ├── scripts/
@@ -61,7 +59,6 @@ seo-system/
 │   ├── checkRanking.ts    # เช็คอันดับ (CSE API)
 │   ├── checkRankingLocal.ts # เช็คอันดับแบบ local (Puppeteer)
 │   ├── detectDuplicate.ts # ตรวจบทความซ้ำ
-│   ├── detectKeywordCannibalization.ts
 │   └── migrateToNeon.ts   # ย้าย DB ไป Neon
 ├── docs/                  # เอกสารภาษาไทย
 └── seo.db                 # SQLite (ถ้าไม่ใช้ PostgreSQL)
@@ -125,13 +122,77 @@ npm run dev
 | `npm run scan` | สแกนบทความจาก 6 เว็บ |
 | `npm run schedule` | รัน cron jobs (scan + check ranking) |
 | `npm run detect` | ตรวจบทความซ้ำ |
-| `npm run cannibal` | ตรวจ Keyword Cannibalization |
 | `npm run check-ranking` | เช็คอันดับ (CSE API — ใช้บนเซิร์ฟเวอร์) |
 | `npm run check-ranking-local` | เช็คอันดับแบบ local (Puppeteer) |
 | `npm run update-keywords` | อัปเดต keywords ใน DB |
 | `npm run migrate-sqlite-to-pg` | ย้ายข้อมูลจาก SQLite → PostgreSQL |
 | `npm run migrate-to-neon` | ย้ายข้อมูลไป Neon Cloud |
 | `npm run cleanup-rank-history` | ลบ rank_history ที่เก่ากว่า 1 ปี |
+
+---
+
+## 📐 Architecture & Diagrams
+
+### System Overview
+
+```mermaid
+flowchart TB
+    subgraph Input["แหล่งข้อมูล"]
+        WP[WordPress API 6 เว็บ]
+        Google[Google Search]
+    end
+
+    subgraph Automation["ระบบอัตโนมัติ"]
+        Scan[สแกนบทความ 10:00]
+        Rank[เช็คอันดับ ทุกชม.]
+        Cleanup[ลบ rank_history > 1 ปี]
+    end
+
+    subgraph Data["ฐานข้อมูล"]
+        Posts[(posts)]
+        RankHistory[(rank_history)]
+    end
+
+    subgraph Dashboard["Dashboard"]
+        R1[/ranking]
+        R2[/ranking/graph]
+        A[/article-titles]
+        D[/duplicates]
+        M[/ranking/manage]
+    end
+
+    WP --> Scan --> Posts
+    Google --> Rank --> RankHistory
+    Posts --> A
+    Posts --> D
+    RankHistory --> R1
+    RankHistory --> R2
+    RankHistory --> A
+```
+
+### Flow Charts & ER Diagram
+
+| Document | Description |
+|----------|-------------|
+| **[docs/FLOWCHART.md](./docs/FLOWCHART.md)** | Flow charts: Article Scan, Ranking Check, Duplicate Detection, Cron Schedule |
+| **[docs/ER-DIAGRAM.md](./docs/ER-DIAGRAM.md)** | Entity-Relationship Diagram สำหรับ database |
+
+### Database ER Diagram
+
+```mermaid
+erDiagram
+    sites ||--o{ site_keywords : "has"
+    keywords ||--o{ site_keywords : "assigned"
+    sites ||--o{ posts : "source"
+    sites ||--o{ rank_history : "site_slug"
+    keywords ||--o{ rank_history : "keyword"
+
+    sites { int id PK text slug UK text name int sort_order }
+    keywords { int id PK text keyword UK int sort_order }
+    site_keywords { int site_id PK,FK int keyword_id PK,FK }
+    posts { int id PK text title text content text source timestamp published_at }
+    rank_history { int id PK text recorded_date text site_slug text keyword int rank text url }
+```
 
 ---
 
@@ -154,6 +215,8 @@ npm run dev
 | File | Description |
 |------|-------------|
 | [PROJECT.md](./PROJECT.md) | ภาพรวมระบบภาษาไทย |
+| [docs/FLOWCHART.md](./docs/FLOWCHART.md) | Flow charts ระบบทั้งหมด |
+| [docs/ER-DIAGRAM.md](./docs/ER-DIAGRAM.md) | ER Diagram ฐานข้อมูล |
 | [docs/KEYWORD_RANKING_TRACKER_SPEC.md](./docs/KEYWORD_RANKING_TRACKER_SPEC.md) | สเปก Keyword Ranking Tracker |
 | [docs/ตั้งค่า-Ranking-ฟรี.md](./docs/ตั้งค่า-Ranking-ฟรี.md) | ตั้งค่า Google CSE ฟรี |
 | [docs/ให้คนอื่นใช้-Ranking.md](./docs/ให้คนอื่นใช้-Ranking.md) | ให้ทีมอื่นใช้ปุ่มเช็คอันดับได้ |

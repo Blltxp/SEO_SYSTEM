@@ -11,7 +11,6 @@
     "scan": "tsx scripts/scan.ts",
     "schedule": "tsx scripts/runScheduledJobs.ts",
     "detect": "tsx scripts/detectDuplicate.ts",
-    "cannibal": "tsx scripts/detectKeywordCannibalization.ts",
     "update-keywords": "tsx scripts/updateKeywords.ts",
     "check-ranking": "tsx scripts/checkRanking.ts",
     "check-ranking-local": "tsx scripts/checkRankingLocal.ts",

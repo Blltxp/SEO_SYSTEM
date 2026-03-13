@@ -52,6 +52,32 @@ export async function getAvailableRecordedDates(limit = 100): Promise<string[]> 
   return rows.map((row) => row.recorded_date)
 }
 
+export type RecordedDateWithCount = { recorded_date: string; row_count: number }
+
+/** รายการ recorded_date พร้อมจำนวนแถว — ใช้ในหน้าการจัดการข้อมูล (ลบข้อมูลซ้ำซ้อน) */
+export async function getRecordedDatesWithCounts(limit = 300): Promise<RecordedDateWithCount[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT recorded_date, COUNT(*) as row_count
+       FROM rank_history
+       GROUP BY recorded_date
+       ORDER BY recorded_date DESC
+       LIMIT ?`
+    )
+    .all(limit)) as { recorded_date: string; row_count: number }[]
+  return rows.map((r) => ({ recorded_date: r.recorded_date, row_count: Number(r.row_count) }))
+}
+
+/** ลบ rank_history ตาม recorded_date ที่ระบุ — คืนจำนวนแถวที่ลบ */
+export async function deleteRankHistoryByRecordedDates(recordedDates: string[]): Promise<number> {
+  const filtered = recordedDates.filter((s) => s?.trim()).map((s) => s.trim())
+  if (filtered.length === 0) return 0
+  const placeholders = filtered.map(() => "?").join(", ")
+  const sql = `DELETE FROM rank_history WHERE recorded_date IN (${placeholders})`
+  const result = await db.prepare(sql).run(...filtered)
+  return result.changes
+}
+
 /** รอ ms มิลลิวินาที */
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))

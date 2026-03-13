@@ -10,6 +10,9 @@ export function pageFromRank(rank: number): number {
 
 const NOT_FOUND_RANK = 999
 
+/** เว็บที่ไม่มีเนื้อหาเกี่ยวกับคนลาว — ไม่ใช้ keyword คนลาว ในการแนะนำ */
+const SITES_EXCLUDE_KONLAO = new Set(["nasaladphrao48", "maidsiam", "suksawatmaid"])
+
 export type DroppedRankRow = {
   site_slug: string
   keyword: string
@@ -159,7 +162,8 @@ function getTitleIntentKey(title: string, keyword: string): string {
 function pickSuggestedArticles(
   suggestionRounds: RankedSuggestedArticle[][],
   maxPerSite: number,
-  excludeAcrossSites?: { titles: Set<string>; templates: Set<string> }
+  excludeAcrossSites?: { titles: Set<string>; templates: Set<string> },
+  skipTemplateExclusion = false
 ): SuggestedArticle[] {
   const allSuggestions = suggestionRounds.flat()
   const picked: RankedSuggestedArticle[] = []
@@ -178,7 +182,7 @@ function pickSuggestedArticles(
 
     if (seenTitles.has(normalizedTitle)) return false
     if (excludeAcrossSites?.titles.has(normalizedTitle)) return false
-    if (excludeAcrossSites?.templates.has(templateKey)) return false
+    if (!skipTemplateExclusion && excludeAcrossSites?.templates.has(templateKey)) return false
     if (!options.allowRepeatedKeyword && usedKeywords.has(item.focusKeyword)) return false
     if (usedKeywordIntent.has(keywordIntentKey)) return false
     if (!options.allowRepeatedGlobalIntent && usedGlobalIntents.has(item.intentKey)) return false
@@ -245,7 +249,14 @@ export async function getTitleRecommendationsForRankGaps(
   const results: SiteRecommendationSummary[] = []
   const usedAcrossSites = { titles: new Set<string>(), templates: new Set<string>() }
 
-  for (const site of sites) {
+  // ให้กลุ่ม B (นาซ่า แม่บ้านสยาม แม่บ้านสุขสวัสดิ์) ประมวลผลก่อน — เลือกเทมเพลตก่อนเว็บอื่น เพื่อให้ได้หัวข้อที่ไม่ซ้ำ
+  const siteOrder = [...sites].sort((a, b) => {
+    const aFirst = SITES_EXCLUDE_KONLAO.has(a.slug) ? 1 : 0
+    const bFirst = SITES_EXCLUDE_KONLAO.has(b.slug) ? 1 : 0
+    return bFirst - aFirst
+  })
+
+  for (const site of siteOrder) {
     const keywords = await getKeywords(site.slug)
     const weakKeywords: WeakKeywordRecommendation[] = []
 
@@ -262,12 +273,35 @@ export async function getTitleRecommendationsForRankGaps(
       })
     }
 
-    if (weakKeywords.length === 0) continue
+    // เว็บ นาซ่า แม่บ้านสยาม แม่บ้านสุขสวัสดิ์ — ไม่ใช้ keyword คนลาว (จะได้มีหัวข้อจาก keyword อื่น)
+    let filteredWeak =
+      SITES_EXCLUDE_KONLAO.has(site.slug)
+        ? weakKeywords.filter((w) => !w.keyword.includes("คนลาว"))
+        : weakKeywords
 
-    weakKeywords.sort((a, b) => scoreWeakKeyword(b) - scoreWeakKeyword(a))
+    // ทุกเว็บต้องมีหัวข้อเสมอ — ถ้า weak ว่าง (ทุก keyword อยู่ Top 20) ใช้อันดับ 11–20 เป็น fallback
+    if (filteredWeak.length === 0) {
+      const fallbackKeywords: WeakKeywordRecommendation[] = []
+      for (const keyword of keywords) {
+        if (SITES_EXCLUDE_KONLAO.has(site.slug) && keyword.includes("คนลาว")) continue
+        const key = `${site.slug}\t${keyword}`
+        const rank = latestRank.get(key) ?? null
+        if (rank !== null && rank >= 11 && rank <= 20) {
+          fallbackKeywords.push({
+            keyword,
+            currentRank: rank,
+            droppedInfo: droppedMap.get(key)
+          })
+        }
+      }
+      filteredWeak = fallbackKeywords
+    }
+    if (filteredWeak.length === 0) continue
 
-    const suggestionRounds: RankedSuggestedArticle[][] = await Promise.all(
-      weakKeywords.map(async (item) =>
+    filteredWeak.sort((a, b) => scoreWeakKeyword(b) - scoreWeakKeyword(a))
+
+    let suggestionRounds: RankedSuggestedArticle[][] = await Promise.all(
+      filteredWeak.map(async (item) =>
         (await getTitleSuggestions({
           site: site.slug,
           keyword: item.keyword,
@@ -281,11 +315,13 @@ export async function getTitleRecommendationsForRankGaps(
     )
 
     const maxPerSite = 4
-    const suggestedArticles = pickSuggestedArticles(suggestionRounds, maxPerSite, usedAcrossSites)
-
+    let suggestedArticles = pickSuggestedArticles(suggestionRounds, maxPerSite, usedAcrossSites)
+    if (suggestedArticles.length === 0 && suggestionRounds.flat().length > 0) {
+      suggestedArticles = pickSuggestedArticles(suggestionRounds, maxPerSite, usedAcrossSites, true)
+    }
     results.push({
       site_slug: site.slug,
-      weakKeywords,
+      weakKeywords: filteredWeak,
       suggestedArticles
     })
   }

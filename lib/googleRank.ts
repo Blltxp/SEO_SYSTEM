@@ -434,12 +434,20 @@ export async function createGoogleRankSession(options?: GoogleRankSessionOptions
 /**
  * เช็คอันดับ 1 keyword ใน Google
  * - ถ้ามี GOOGLE_CSE_API_KEY + GOOGLE_CSE_CX จะใช้ Custom Search API
- * - ไม่เช่นนั้นใช้ Puppeteer ยิง Google Web Search อย่างเดียว
+ * - ไม่เช่นนั้นใช้ Puppeteer ยิง Google Web Search (เฉพาะ local, ไม่รองรับบน Vercel)
  * อันดับที่คืนนับเฉพาะ organic (ไม่นับโฆษณา, Facebook, ข่าว, แอป, เว็บหางาน, เว็บจัดอันดับ)
  */
 export async function checkKeywordRank(keyword: string): Promise<RankResult[]> {
   if (isGoogleCseConfigured()) {
     return checkKeywordRankViaAPI(keyword)
+  }
+  // บน Vercel/serverless ไม่มี Chrome — ต้องใช้ CSE API เท่านั้น (ไม่ใช้ Puppeteer)
+  const isVercel = process.env.VERCEL === "1"
+  const isProduction = process.env.NODE_ENV === "production"
+  if (isVercel || isProduction) {
+    throw new GoogleRankFetchError(
+      "บนเซิร์ฟเวอร์ (Vercel) ต้องตั้ง GOOGLE_CSE_API_KEY และ GOOGLE_CSE_CX ใน Environment Variables ของ Vercel — Puppeteer ไม่รองรับ (ไม่มี Chrome)"
+    )
   }
   const session = await createGoogleRankSession()
   try {

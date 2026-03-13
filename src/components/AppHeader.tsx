@@ -7,7 +7,6 @@ const NAV = [
   { href: "/", label: "หน้าแรก" },
   { href: "/article-titles", label: "หัวข้อบทความ" },
   { href: "/duplicates", label: "รายงานซ้ำ" },
-  { href: "/cannibalization", label: "Cannibalization" },
   { href: "/ranking", label: "Ranking" },
 ]
 

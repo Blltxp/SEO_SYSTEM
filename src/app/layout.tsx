@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SEO System",
-  description: "ระบบตรวจสอบ SEO, Keyword Ranking และ Cannibalization",
+  description: "ระบบตรวจสอบ SEO และ Keyword Ranking",
   icons: {
     icon: "/information.svg",
   },

@@ -16,7 +16,7 @@ export async function detectTitleDuplicates(sinceDays?: number): Promise<Duplica
   const rows = (await db
     .prepare(
       `SELECT title, COUNT(*) as count FROM posts ${where}
-       GROUP BY title HAVING count > 1`
+       GROUP BY title HAVING COUNT(*) > 1`
     )
     .all()) as { title: string; count: number }[]
 

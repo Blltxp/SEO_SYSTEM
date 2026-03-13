@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FileText, Copy, GitBranch, Table2 } from "lucide-react"
+import { LayoutDashboard, FileText, Copy, Table2, Trash2 } from "lucide-react"
 
 const NAV_ITEMS = [
   { href: "/ranking/graph", label: "แดชบอร์ด", icon: LayoutDashboard },
+  { href: "/ranking", label: "ตาราง Ranking", icon: Table2 },
   { href: "/article-titles", label: "หัวข้อบทความ", icon: FileText },
   { href: "/duplicates", label: "รายงานซ้ำ", icon: Copy },
-  { href: "/cannibalization", label: "Cannibalization", icon: GitBranch },
-  { href: "/ranking", label: "ตาราง Ranking", icon: Table2 },
+  { href: "/ranking/manage", label: "จัดการข้อมูล Ranking", icon: Trash2 },
 ]
 
 export function Sidebar() {

@@ -96,8 +96,10 @@ export async function getSites(): Promise<Site[]> {
   return rows
 }
 
-/**
- * รายการ keyword — ถ้าใส่ siteSlug และเว็บนั้นมี site_keywords จะคืนเฉพาะ keyword ของเว็บ
+/** เว็บที่ไม่มีเนื้อหาเกี่ยวกับคนลาว — ไม่แนะนำหัวข้อที่เกี่ยวกับคนลาว */
+const SITES_EXCLUDE_KONLAO = new Set(["nasaladphrao48", "maidsiam", "suksawatmaid"])
+
+/** รายการ keyword — ถ้าใส่ siteSlug และเว็บนั้นมี site_keywords จะคืนเฉพาะ keyword ของเว็บ
  * ไม่มี = ใช้ทุก keyword
  */
 export async function getKeywords(siteSlug?: string): Promise<string[]> {
@@ -128,11 +130,17 @@ export async function getTitleSuggestions(options?: {
   keyword?: string
   excludeExisting?: boolean
   site?: string
+  /** เมื่อ true — ไม่กรอง near-duplicate (ใช้เมื่อต้องการ fallback ให้มีหัวข้ออย่างน้อย) */
+  relaxNearDuplicate?: boolean
 }): Promise<TitleSuggestion[]> {
   let keywords = await getKeywords(options?.site)
   if (options?.keyword?.trim()) {
     const k = options.keyword.trim()
     keywords = keywords.filter((kw) => kw === k)
+  }
+  // เว็บ นาซ่าลาดพร้าว แม่บ้านสยาม แม่บ้านสุขสวัสดิ์ — ไม่มีเนื้อหาเกี่ยวกับคนลาว
+  if (options?.site && SITES_EXCLUDE_KONLAO.has(options.site)) {
+    keywords = keywords.filter((kw) => !kw.includes("คนลาว"))
   }
   const suggestions = suggestTitles(keywords)
   const existing = await getExistingTitles(options?.site)
@@ -150,7 +158,7 @@ export async function getTitleSuggestions(options?: {
     if (options?.excludeExisting && s.alreadyUsed) return false
     // หัวข้อที่ตรงกับที่มีอยู่พอดี ไม่ถือว่า near-dup (เพื่อไม่กรองตัวเอง)
     if (s.alreadyUsed) return true
-    if (isNearDuplicate(s.title, existing.list)) return false
+    if (!options?.relaxNearDuplicate && isNearDuplicate(s.title, existing.list)) return false
     return true
   })
 
