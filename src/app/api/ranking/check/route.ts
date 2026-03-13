@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { runRankCheck } from "@/lib/ranking"
 import { createGoogleRankSession, GoogleChallengeError, GoogleRankFetchError, waitForGoogleChallengeResolved } from "@/lib/googleRank"
 
-export const maxDuration = 900
+export const maxDuration = 300 // Vercel Hobby: max 300
 
 export async function POST() {
   const interactiveLocalMode = process.env.NODE_ENV !== "production"
