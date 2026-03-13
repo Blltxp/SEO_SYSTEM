@@ -13,10 +13,10 @@ flowchart TB
         Google[Google Search]
     end
 
-    subgraph Automation["ระบบอัตโนมัติ (Cron)"]
-        Scan[สแกนบทความ<br/>ทุกวัน 10:00]
-        Rank[เช็คอันดับ<br/>ทุกชั่วโมง]
-        Cleanup[ลบ rank_history เก่า 1 ปี<br/>อาทิตย์ละครั้ง]
+    subgraph Manual["รันเองเมื่อต้องการ"]
+        Scan[npm run scan<br/>สแกนบทความ]
+        Rank[ปุ่มเช็คอันดับ<br/>Dashboard]
+        Cleanup[npm run cleanup-rank-history<br/>ลบข้อมูลเก่า]
     end
 
     subgraph Data["ฐานข้อมูล"]
@@ -26,18 +26,17 @@ flowchart TB
     end
 
     subgraph Dashboard["Dashboard"]
-        Ranking[/ranking<br/>ตารางอันดับ]
-        Graph[/ranking/graph<br/>กราฟแนวโน้ม]
-        Titles[/article-titles<br/>หัวข้อบทความ]
-        Duplicates[/duplicates<br/>รายงานซ้ำ]
-        Manage[/ranking/manage<br/>จัดการข้อมูล]
+        Ranking[ranking ตารางอันดับ]
+        Graph[ranking graph กราฟแนวโน้ม]
+        Titles[article-titles หัวข้อบทความ]
+        Duplicates[duplicates รายงานซ้ำ]
+        Manage[ranking manage จัดการข้อมูล]
     end
 
     WP --> Scan
     Scan --> Posts
     Google --> Rank
     Rank --> RankHistory
-    RankHistory --> Cleanup
 
     Posts --> Titles
     Posts --> Duplicates
@@ -145,22 +144,7 @@ flowchart TB
 
 ---
 
-## 6. Cron Schedule Flow
-
-```mermaid
-flowchart LR
-    Cron[runScheduledJobs.ts] --> C1[0 10 * * *<br/>ทุกวัน 10:00]
-    Cron --> C2[0 * * * *<br/>ทุกชั่วโมง]
-    Cron --> C3[0 3 * * 0<br/>อาทิตย์ 03:00]
-
-    C1 --> Scan[runAutomation<br/>สแกนบทความ]
-    C2 --> Rank[runRankCheck<br/>เช็คอันดับ]
-    C3 --> Cleanup[cleanupOldRankHistory<br/>ลบ > 1 ปี]
-```
-
----
-
-## 7. Data Flow สำหรับกราฟ Ranking
+## 6. Data Flow สำหรับกราฟ Ranking
 
 ```mermaid
 flowchart LR
@@ -186,7 +170,7 @@ flowchart LR
 | Script | Flow |
 |--------|------|
 | `npm run scan` | Article Scan Flow |
-| `npm run schedule` | Cron Schedule Flow (รันทุก flow ตามเวลา) |
 | `npm run detect` | Duplicate Detection (CLI) |
 | `npm run check-ranking` | Ranking Check Flow (CSE API) |
 | `npm run check-ranking-local` | Ranking Check Flow (Puppeteer) |
+| `npm run cleanup-rank-history` | ลบ rank_history เก่ากว่า 1 ปี |

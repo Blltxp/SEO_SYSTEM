@@ -11,7 +11,7 @@
 - **Dashboard** — ตารางอันดับ, Heatmap, กราฟแนวโน้มย้อนหลัง
 - **กราฟเจาะลึก** — เลือก keyword ดูแนวโน้ม 6 เว็บ พร้อมเส้นเฉลี่ย
 - **เปรียบเทียบ** — ดีขึ้น/แย่ลง/คงเดิม เทียบกับรอบก่อน
-- **รันอัตโนมัติ** — Cron ทุกชั่วโมง + ปุ่มเช็คอันดับมือ
+- **ปุ่มเช็คอันดับ** — กดเมื่อต้องการเช็คอันดับ 19 keyword × 6 เว็บ
 
 ### 2. Article Intelligence System
 - **ดึงบทความ** — จาก WordPress API / RSS (6 เว็บ)
@@ -28,7 +28,7 @@
 | UI | React 19, Tailwind CSS 4, Recharts |
 | Database | SQLite (default) หรือ PostgreSQL |
 | Scraping | Cheerio, Puppeteer |
-| Automation | node-cron |
+| Automation | ปุ่มเช็คอันดับ (manual) |
 
 ---
 
@@ -55,7 +55,6 @@ seo-system/
 │   └── components/        # Sidebar, PageLayout, Card, Button
 ├── scripts/
 │   ├── scan.ts            # สแกนบทความจาก 6 เว็บ
-│   ├── runScheduledJobs.ts# Cron: scan + check ranking
 │   ├── checkRanking.ts    # เช็คอันดับ (CSE API)
 │   ├── checkRankingLocal.ts # เช็คอันดับแบบ local (Puppeteer)
 │   ├── detectDuplicate.ts # ตรวจบทความซ้ำ
@@ -120,7 +119,6 @@ npm run dev
 | `npm run build` | Build for production |
 | `npm run start` | Start production server |
 | `npm run scan` | สแกนบทความจาก 6 เว็บ |
-| `npm run schedule` | รัน cron jobs (scan + check ranking) |
 | `npm run detect` | ตรวจบทความซ้ำ |
 | `npm run check-ranking` | เช็คอันดับ (CSE API — ใช้บนเซิร์ฟเวอร์) |
 | `npm run check-ranking-local` | เช็คอันดับแบบ local (Puppeteer) |
@@ -142,10 +140,10 @@ flowchart TB
         Google[Google Search]
     end
 
-    subgraph Automation["ระบบอัตโนมัติ"]
-        Scan[สแกนบทความ 10:00]
-        Rank[เช็คอันดับ ทุกชม.]
-        Cleanup[ลบ rank_history > 1 ปี]
+    subgraph Manual["รันมือ / Scripts"]
+        Scan[npm run scan]
+        Rank[ปุ่มเช็คอันดับ / npm run check-ranking]
+        Cleanup[npm run cleanup-rank-history]
     end
 
     subgraph Data["ฐานข้อมูล"]
@@ -174,7 +172,7 @@ flowchart TB
 
 | Document | Description |
 |----------|-------------|
-| **[docs/FLOWCHART.md](./docs/FLOWCHART.md)** | Flow charts: Article Scan, Ranking Check, Duplicate Detection, Cron Schedule |
+| **[docs/FLOWCHART.md](./docs/FLOWCHART.md)** | Flow charts: Article Scan, Ranking Check, Duplicate Detection |
 | **[docs/ER-DIAGRAM.md](./docs/ER-DIAGRAM.md)** | Entity-Relationship Diagram สำหรับ database |
 
 ### Database ER Diagram

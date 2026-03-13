@@ -43,7 +43,7 @@
 - เช็คอันดับ **ต่อ keyword ต่อเว็บทั้ง 6 เว็บ** — ตารางแสดงอันดับ + ลิงก์
 - เช็ค **19 keyword พร้อมกัน** (scrape Google) บันทึกลง rank_history
 - **กรณีพิเศษ:** keyword 「หาแรงงานต่างด้าว」 — แสดง "ไม่พบ (ดี)" / "พบเว็บเรา — ควรตรวจสอบ"
-- **รันอัตโนมัติ:** ทุกชั่วโมง (cron) + **ปุ่มเช็คอันดับตอนนี้**
+- **ปุ่มเช็คอันดับตอนนี้** — กดเช็คเมื่อไหร่ก็ได้
 - **Dashboard:** ตารางอันดับ, Visibility (Top 10 / Top 50 / Not Found), อันดับไม่พบแสดง "-"
 - **กราฟเปรียบเทียบ 6 เว็บ** ต่อ keyword — ย้อนหลัง 24 ชม. / 3 วัน / 1–3 อาทิตย์ / 1–6 เดือน / 1 ปี
 - **เปรียบเทียบย้อนหลัง:** ดูได้จากกราฟ (ยังไม่มีคอลัมน์ "ขึ้น/ลงกี่อันดับ" ในตาราง)
@@ -65,7 +65,7 @@ seo-system
 │   ├── scan articles  ✅ scripts/runAutomation.ts
 │   ├── detect duplicate ✅ lib/duplicate.ts + scripts/detectDuplicate.ts
 │   ├── check ranking  ✅ lib/googleRank.ts + lib/ranking.ts + scripts/checkRanking.ts
-│   └── scheduler      ✅ cron: สแกนบทความ 10:00, เช็คอันดับทุกชั่วโมง
+│   └── check ranking  ✅ ปุ่มเช็คอันดับ (manual)
 └── dashboard
     ├── หน้าแรก        ✅ ลิงก์ไปทุกรายงาน
     ├── article-titles ✅ หัวข้อบทความแนะนำ (19 keyword, แนะนำเมื่อยังไม่อยู่หน้า 1)
@@ -80,5 +80,5 @@ seo-system
 - **Next.js** — เว็บ + API
 - **Node.js** — สคริปต์ + cron
 - **ฐานข้อมูล** — SQLite (เริ่มต้น) หรือ PostgreSQL/Neon (ดู CLOUD_SETUP.md)
-- **node-cron** — ตั้งเวลา scan
+- (สแกนบทความ + เช็คอันดับ — รัน manual ตามต้องการ)
 - (RSS Parser — ใช้เมื่อมีเว็บที่ดึงแบบ RSS)
