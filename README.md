@@ -1,36 +1,174 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SEO System
 
-## Getting Started
+ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), ตรวจบทความซ้ำ, Keyword Cannibalization และแนะนำหัวข้อบทความ
 
-First, run the development server:
+---
+
+## ✨ Features
+
+### 1. Keyword Ranking Tracker
+- **เช็คอันดับ Google** — 19 keyword × 6 เว็บไซต์
+- **Dashboard** — ตารางอันดับ, Heatmap, กราฟแนวโน้มย้อนหลัง
+- **กราฟเจาะลึก** — เลือก keyword ดูแนวโน้ม 6 เว็บ พร้อมเส้นเฉลี่ย
+- **เปรียบเทียบ** — ดีขึ้น/แย่ลง/คงเดิม เทียบกับรอบก่อน
+- **รันอัตโนมัติ** — Cron ทุกชั่วโมง + ปุ่มเช็คอันดับมือ
+
+### 2. Article Intelligence System
+- **ดึงบทความ** — จาก WordPress API / RSS (6 เว็บ)
+- **ตรวจบทความซ้ำ** — หัวข้อซ้ำ, เนื้อหาคล้าย (cosine similarity)
+- **Keyword Cannibalization** — แจ้งเตือนเมื่อหลายบทความแข่ง keyword เดียวกัน
+- **หัวข้อบทความแนะนำ** — แนะนำเมื่อเว็บยังไม่อยู่หน้า 1 (ใช้ข้อมูล rank จริง)
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS 4, Recharts |
+| Database | SQLite (default) หรือ PostgreSQL |
+| Scraping | Cheerio, Puppeteer |
+| Automation | node-cron |
+
+---
+
+## 📁 Project Structure
+
+```
+seo-system/
+├── lib/                    # Core logic
+│   ├── db.ts              # Database (SQLite/PostgreSQL wrapper)
+│   ├── ranking.ts         # Rank history CRUD
+│   ├── googleRank.ts      # Google search scraping / CSE API
+│   ├── rankDrop.ts        # หัวข้อแนะนำเมื่ออันดับหล่น
+│   ├── titleSuggestions.ts # Title suggestions
+│   ├── duplicate.ts       # บทความซ้ำ
+│   ├── wordpress.ts       # WordPress API / RSS fetch
+│   └── ...
+├── src/
+│   ├── app/
+│   │   ├── page.tsx       # Redirect → /ranking/graph
+│   │   ├── ranking/       # ตารางอันดับ + กราฟ
+│   │   ├── article-titles/# หัวข้อบทความแนะนำ
+│   │   ├── duplicates/    # รายงานบทความซ้ำ
+│   │   ├── cannibalization/# Keyword Cannibalization
+│   │   └── api/           # API routes
+│   └── components/        # Sidebar, PageLayout, Card, Button
+├── scripts/
+│   ├── scan.ts            # สแกนบทความจาก 6 เว็บ
+│   ├── runScheduledJobs.ts# Cron: scan + check ranking
+│   ├── checkRanking.ts    # เช็คอันดับ (CSE API)
+│   ├── checkRankingLocal.ts # เช็คอันดับแบบ local (Puppeteer)
+│   ├── detectDuplicate.ts # ตรวจบทความซ้ำ
+│   ├── detectKeywordCannibalization.ts
+│   └── migrateToNeon.ts   # ย้าย DB ไป Neon
+├── docs/                  # เอกสารภาษาไทย
+└── seo.db                 # SQLite (ถ้าไม่ใช้ PostgreSQL)
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- (Optional) PostgreSQL หรือ [Neon](https://neon.tech) สำหรับ database บน cloud
+
+### Installation
+
+```bash
+git clone <repo-url>
+cd seo-system
+npm install
+```
+
+### Environment Variables
+
+สร้างไฟล์ `.env` ในโฟลเดอร์ราก:
+
+```env
+# Database (เลือกอย่างใดอย่างหนึ่ง)
+# ถ้าไม่ตั้ง = ใช้ SQLite (seo.db)
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+
+# สำหรับเช็คอันดับจากเซิร์ฟเวอร์ (ไม่ใช่ local)
+# โควต้าฟรี 100 ครั้ง/วัน
+GOOGLE_CSE_API_KEY=your_api_key
+GOOGLE_CSE_CX=your_search_engine_id
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | No | PostgreSQL connection string. ถ้าไม่มีจะใช้ SQLite |
+| `GOOGLE_CSE_API_KEY` | สำหรับ production | Google Custom Search API key |
+| `GOOGLE_CSE_CX` | สำหรับ production | Search Engine ID |
+| `MIGRATE_TARGET_DATABASE_URL` | Migration only | สำหรับ `npm run migrate-to-neon` |
+
+### Run Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด [http://localhost:3000](http://localhost:3000) — จะ redirect ไปแดชบอร์ด ranking
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📜 Scripts
 
-## Learn More
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run scan` | สแกนบทความจาก 6 เว็บ |
+| `npm run schedule` | รัน cron jobs (scan + check ranking) |
+| `npm run detect` | ตรวจบทความซ้ำ |
+| `npm run cannibal` | ตรวจ Keyword Cannibalization |
+| `npm run check-ranking` | เช็คอันดับ (CSE API — ใช้บนเซิร์ฟเวอร์) |
+| `npm run check-ranking-local` | เช็คอันดับแบบ local (Puppeteer) |
+| `npm run update-keywords` | อัปเดต keywords ใน DB |
+| `npm run migrate-sqlite-to-pg` | ย้ายข้อมูลจาก SQLite → PostgreSQL |
+| `npm run migrate-to-neon` | ย้ายข้อมูลไป Neon Cloud |
+| `npm run cleanup-rank-history` | ลบ rank_history ที่เก่ากว่า 1 ปี |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🗄 Database Schema
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Tables
+- **posts** — บทความจาก 6 เว็บ (title, content, url, source, keyword)
+- **keywords** — 19 keyword หลัก
+- **sites** — 6 เว็บไซต์
+- **site_keywords** — ผูก keyword กับ site
+- **rank_history** — บันทึกอันดับ (recorded_date, site_slug, keyword, rank, url)
 
-## Deploy on Vercel
+### Sites (6 เว็บ)
+แม่บ้านดีดี · แม่บ้านสยาม · นาซ่าลาดพร้าว · แม่บ้านอินเตอร์ · แม่บ้านดีดีเซอร์วิส · แม่บ้านสุขสวัสดิ์
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📖 Documentation
+
+| File | Description |
+|------|-------------|
+| [PROJECT.md](./PROJECT.md) | ภาพรวมระบบภาษาไทย |
+| [docs/KEYWORD_RANKING_TRACKER_SPEC.md](./docs/KEYWORD_RANKING_TRACKER_SPEC.md) | สเปก Keyword Ranking Tracker |
+| [docs/ตั้งค่า-Ranking-ฟรี.md](./docs/ตั้งค่า-Ranking-ฟรี.md) | ตั้งค่า Google CSE ฟรี |
+| [docs/ให้คนอื่นใช้-Ranking.md](./docs/ให้คนอื่นใช้-Ranking.md) | ให้ทีมอื่นใช้ปุ่มเช็คอันดับได้ |
+| [CLOUD_SETUP.md](./CLOUD_SETUP.md) | ตั้งค่า Neon (PostgreSQL Cloud) |
+| [REMOTE_DATABASE_SETUP.md](./REMOTE_DATABASE_SETUP.md) | ตั้งค่า PostgreSQL บนเซิร์ฟเวอร์ |
+
+---
+
+## 🌐 Deployment
+
+- **Vercel** — แนะนำสำหรับ Next.js, ตั้ง `DATABASE_URL` + `GOOGLE_CSE_*` ใน Environment Variables
+- **Neon** — ใช้ DB Cloud ฟรี ไม่ต้อง VPN ([CLOUD_SETUP.md](./CLOUD_SETUP.md))
+
+---
+
+## 📄 License
+
+Private project
