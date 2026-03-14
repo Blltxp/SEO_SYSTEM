@@ -57,7 +57,7 @@ seo-system/
 │   ├── rankDrop.ts        # หัวข้อแนะนำเมื่ออันดับหล่น
 │   ├── titleSuggestions.ts # Title suggestions
 │   ├── duplicate.ts       # บทความซ้ำ (similarity.ts)
-│   ├── wordpress.ts       # WordPress API / RSS (rssFetch, siteDomains)
+│   ├── wordpress.ts       # WordPress API (siteDomains)
 │   ├── visitorStats.ts    # ดึงสถิติ PVC จาก 6 เว็บ (Puppeteer)
 │   ├── visitorStatsDb.ts  # site_visitor_stats CRUD
 │   ├── websiteStatus.ts   # ตรวจสถานะเว็บ (โหลด, LINE, โทร)
@@ -81,7 +81,10 @@ seo-system/
 │   ├── detectDuplicate.ts # ตรวจบทความซ้ำ
 │   ├── migrateToNeon.ts   # ย้าย DB ไป Neon
 │   ├── runAutomation.ts   # รัน automation ตามกำหนด
-│   └── debugRank.ts       # debug การเช็คอันดับ
+│   ├── debugRank.ts       # debug การเช็คอันดับ
+│   ├── start-seo-system.bat  # Launcher: build + start server + เปิดเบราว์เซอร์
+│   ├── SEO-System.vbs     # เปิดแอพ (เรียก start-seo-system.bat)
+│   └── create-desktop-shortcut.vbs  # สร้าง shortcut บน Desktop
 ├── docs/                  # เอกสารภาษาไทย
 └── seo.db                 # SQLite (ถ้าไม่ใช้ PostgreSQL)
 ```
@@ -131,6 +134,12 @@ npm run dev
 ```
 
 เปิด [http://localhost:3000](http://localhost:3000) — จะ redirect ไป **Dashboard SEO** (`/ranking/graph`)
+
+### รันแบบแอพ (ดับเบิลคลิก ไม่ต้องเปิด IDE)
+
+- **ดับเบิลคลิก `SEO-System.bat`** (ที่โฟลเดอร์ราก) → เปิดเบราว์เซอร์ให้เอง, หน้าต่าง CMD ปิดเอง (เซิร์ฟเวอร์รันที่แถบงาน "SEO System - Server")
+- สร้าง shortcut บน Desktop: ดับเบิลคลิก **`scripts/create-desktop-shortcut.vbs`** แล้วเปลี่ยนไอคอนได้ที่ Properties → Change Icon
+- รายละเอียด: [docs/รันเว็บแอพโดยไม่ต้องจดโดเมน.md](./docs/รันเว็บแอพโดยไม่ต้องจดโดเมน.md), [docs/เปลี่ยนไอคอน.md](./docs/เปลี่ยนไอคอน.md)
 
 ### หน้าหลัก (เมนู Sidebar)
 
@@ -271,6 +280,8 @@ erDiagram
 | [docs/ให้คนอื่นใช้-Ranking.md](./docs/ให้คนอื่นใช้-Ranking.md) | ให้ทีมอื่นใช้ปุ่มเช็คอันดับได้ |
 | [CLOUD_SETUP.md](./CLOUD_SETUP.md) | ตั้งค่า Neon (PostgreSQL Cloud) |
 | [REMOTE_DATABASE_SETUP.md](./REMOTE_DATABASE_SETUP.md) | ตั้งค่า PostgreSQL บนเซิร์ฟเวอร์ |
+| [docs/รันเว็บแอพโดยไม่ต้องจดโดเมน.md](./docs/รันเว็บแอพโดยไม่ต้องจดโดเมน.md) | รันแบบแอพ (ดับเบิลคลิก, ไม่ต้องจดโดเมน) |
+| [docs/เปลี่ยนไอคอน.md](./docs/เปลี่ยนไอคอน.md) | เปลี่ยนไอคอน shortcut |
 
 ---
 
