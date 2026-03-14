@@ -62,6 +62,7 @@ seo-system/
 │   ├── visitorStatsDb.ts  # site_visitor_stats CRUD
 │   ├── websiteStatus.ts   # ตรวจสถานะเว็บ (โหลด, LINE, โทร)
 │   ├── websiteStatusDb.ts # website_status CRUD
+│   ├── siteColors.ts      # สีและชื่อแสดงของแต่ละเว็บ (กราฟ/ตาราง)
 │   └── ...
 ├── src/
 │   ├── app/
@@ -129,7 +130,19 @@ GOOGLE_CSE_CX=your_search_engine_id
 npm run dev
 ```
 
-เปิด [http://localhost:3000](http://localhost:3000) — จะ redirect ไปแดชบอร์ด ranking
+เปิด [http://localhost:3000](http://localhost:3000) — จะ redirect ไป **Dashboard SEO** (`/ranking/graph`)
+
+### หน้าหลัก (เมนู Sidebar)
+
+| Path | คำอธิบาย |
+|------|----------|
+| `/ranking/graph` | Dashboard SEO — กราฟแนวโน้มอันดับ, Heatmap |
+| `/ranking` | ตารางอันดับ Keyword |
+| `/visitors` | จำนวนคนเข้าชม |
+| `/website-status` | สถานะเว็บไซต์ (โหลด, LINE, โทร) |
+| `/article-titles` | หัวข้อบทความแนะนำ |
+| `/duplicates` | รายงานบทความซ้ำ |
+| `/ranking/manage` | จัดการข้อมูล Ranking |
 
 ---
 
