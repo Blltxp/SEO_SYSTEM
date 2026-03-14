@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "serve": "npm run build && npm run start",
     "lint": "eslint",
     "scan": "tsx scripts/scan.ts",
     "detect": "tsx scripts/detectDuplicate.ts",
