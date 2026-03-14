@@ -1,6 +1,6 @@
 # SEO System
 
-ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), จำนวนคนเข้าชมเว็บ, ตรวจบทความซ้ำ และแนะนำหัวข้อบทความ
+ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), จำนวนคนเข้าชมเว็บ, ตรวจสถานะเว็บ (โหลด/LINE/โทร), ตรวจบทความซ้ำ และแนะนำหัวข้อบทความ
 
 ---
 
@@ -20,7 +20,13 @@
 - **กรอกมือ** — สำหรับเว็บที่ widget โหลดไม่เสร็จเมื่อไม่ล็อกอิน (เช่น นาซ่า, แม่บ้านดีดีเซอร์วิส)
 - **บันทึกเป็นรูป** — export ตารางเป็น PNG
 
-### 3. Article Intelligence System
+### 3. สถานะเว็บไซต์ (Website Status)
+- **ตรวจสถานะ 6 เว็บ** — โหลดหน้าแรกได้ไหม, เวลาโหลด (ปกติ/ช้า/ล้มเหลว)
+- **ตรวจ LINE / โทรศัพท์** — ปุ่มแอด LINE และลิงก์โทรบนเว็บใช้ได้หรือไม่ (Puppeteer)
+- **ปุ่มเช็คสถานะ** — กดรันบอทแล้วบันทึกผลลง DB
+- **บันทึกเป็นรูป** — export ตารางเป็น PNG
+
+### 4. Article Intelligence System
 - **ดึงบทความ** — จาก WordPress API / RSS (6 เว็บ)
 - **ตรวจบทความซ้ำ** — หัวข้อซ้ำ, เนื้อหาคล้าย (cosine similarity)
 - **หัวข้อบทความแนะนำ** — แนะนำเมื่อเว็บยังไม่อยู่หน้า 1 (ใช้ข้อมูล rank จริง)
@@ -32,10 +38,10 @@
 | Layer | Technology |
 |-------|------------|
 | Framework | Next.js 16 (App Router) |
-| UI | React 19, Tailwind CSS 4, Recharts |
-| Database | SQLite (default) หรือ PostgreSQL |
-| Scraping | Cheerio, Puppeteer |
-| Automation | ปุ่มเช็คอันดับ (manual) |
+| UI | React 19, Tailwind CSS 4, Recharts, Lucide Icons |
+| Database | SQLite (better-sqlite3) หรือ PostgreSQL (pg) |
+| Scraping / Automation | Cheerio, Puppeteer |
+| Export | html-to-image, html2canvas-pro, JSZip |
 
 ---
 
@@ -46,29 +52,35 @@ seo-system/
 ├── lib/                    # Core logic
 │   ├── db.ts              # Database (SQLite/PostgreSQL wrapper)
 │   ├── ranking.ts         # Rank history CRUD
-│   ├── googleRank.ts      # Google search scraping / CSE API
+│   ├── googleRank.ts      # Google search scraping
+│   ├── googleRankCse.ts   # Google Custom Search API
 │   ├── rankDrop.ts        # หัวข้อแนะนำเมื่ออันดับหล่น
 │   ├── titleSuggestions.ts # Title suggestions
-│   ├── duplicate.ts       # บทความซ้ำ
-│   ├── wordpress.ts       # WordPress API / RSS fetch
+│   ├── duplicate.ts       # บทความซ้ำ (similarity.ts)
+│   ├── wordpress.ts       # WordPress API / RSS (rssFetch, siteDomains)
 │   ├── visitorStats.ts    # ดึงสถิติ PVC จาก 6 เว็บ (Puppeteer)
 │   ├── visitorStatsDb.ts  # site_visitor_stats CRUD
+│   ├── websiteStatus.ts   # ตรวจสถานะเว็บ (โหลด, LINE, โทร)
+│   ├── websiteStatusDb.ts # website_status CRUD
 │   └── ...
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx       # Redirect → /ranking/graph
-│   │   ├── ranking/       # ตารางอันดับ + กราฟ
+│   │   ├── ranking/       # ตารางอันดับ, กราฟ, manage
 │   │   ├── visitors/      # จำนวนคนเข้าชมเว็บ (ตาราง + รอบเช้า/เย็น)
+│   │   ├── website-status/# สถานะเว็บไซต์ (โหลด, LINE, โทร)
 │   │   ├── article-titles/# หัวข้อบทความแนะนำ
 │   │   ├── duplicates/    # รายงานบทความซ้ำ
-│   │   └── api/           # API routes (ranking, visitors, …)
+│   │   └── api/           # API routes (ranking, visitors, website-status, …)
 │   └── components/        # Sidebar, PageLayout, Card, Button
 ├── scripts/
 │   ├── scan.ts            # สแกนบทความจาก 6 เว็บ
 │   ├── checkRanking.ts    # เช็คอันดับ (CSE API)
 │   ├── checkRankingLocal.ts # เช็คอันดับแบบ local (Puppeteer)
 │   ├── detectDuplicate.ts # ตรวจบทความซ้ำ
-│   └── migrateToNeon.ts   # ย้าย DB ไป Neon
+│   ├── migrateToNeon.ts   # ย้าย DB ไป Neon
+│   ├── runAutomation.ts   # รัน automation ตามกำหนด
+│   └── debugRank.ts       # debug การเช็คอันดับ
 ├── docs/                  # เอกสารภาษาไทย
 └── seo.db                 # SQLite (ถ้าไม่ใช้ PostgreSQL)
 ```
@@ -154,6 +166,7 @@ flowchart TB
         Scan[npm run scan]
         Rank[ปุ่มเช็คอันดับ / npm run check-ranking]
         VisitorCheck[ปุ่มรอบเช้า/เย็น จำนวนคนเข้าชม]
+        StatusCheck[ปุ่มเช็คสถานะเว็บ]
         Cleanup[npm run cleanup-rank-history]
     end
 
@@ -161,12 +174,14 @@ flowchart TB
         Posts[(posts)]
         RankHistory[(rank_history)]
         VisitorStats[(site_visitor_stats)]
+        WebsiteStatus[(website_status)]
     end
 
     subgraph Dashboard["Dashboard"]
         R1[ranking]
         R2[ranking graph]
         V[visitors]
+        WS[website-status]
         A[article-titles]
         D[duplicates]
         M[ranking manage]
@@ -181,6 +196,8 @@ flowchart TB
     RankHistory --> A
     VisitorCheck --> VisitorStats
     VisitorStats --> V
+    StatusCheck --> WebsiteStatus
+    WebsiteStatus --> WS
 ```
 
 ### Flow Charts & ER Diagram
@@ -199,6 +216,7 @@ erDiagram
     sites ||--o{ posts : "source"
     sites ||--o{ rank_history : "site_slug"
     sites ||--o{ site_visitor_stats : "site_slug"
+    sites ||--o{ website_status : "site_slug"
     keywords ||--o{ rank_history : "keyword"
 
     sites { int id PK text slug UK text name int sort_order }
@@ -207,6 +225,7 @@ erDiagram
     posts { int id PK text title text content text source timestamp published_at }
     rank_history { int id PK text recorded_date text site_slug text keyword int rank text url }
     site_visitor_stats { int id PK text recorded_date text site_slug int total_visitors int morning_round int evening_round }
+    website_status { int id PK text site_slug text name text url int load_time_ms text load_status bool line_ok bool phone_ok text checked_at }
 ```
 
 ---
@@ -220,6 +239,7 @@ erDiagram
 - **site_keywords** — ผูก keyword กับ site
 - **rank_history** — บันทึกอันดับ (recorded_date, site_slug, keyword, rank, url)
 - **site_visitor_stats** — สถิติผู้เข้าชม (recorded_date, site_slug, total_visitors, morning_round, evening_round)
+- **website_status** — สถานะเว็บล่าสุด (site_slug, load_time_ms, load_status, line_ok, phone_ok, checked_at)
 
 ### Sites (6 เว็บ)
 แม่บ้านดีดี · แม่บ้านสยาม · นาซ่าลาดพร้าว · แม่บ้านอินเตอร์ · แม่บ้านดีดีเซอร์วิส · แม่บ้านสุขสวัสดิ์

@@ -21,11 +21,11 @@ export type VisitorStatsRow = {
   total_today: number
 }
 
-/** ดึงรายการวันที่ที่มีข้อมูล visitor stats */
+/** ดึงรายการวันที่ที่มีข้อมูล visitor stats (เก็บแค่วันล่าสุด = อย่างมาก 1 วัน) */
 export async function getAvailableVisitorDates(): Promise<string[]> {
   const rows = (await db
     .prepare(
-      "SELECT DISTINCT recorded_date FROM site_visitor_stats ORDER BY recorded_date DESC LIMIT 60"
+      "SELECT DISTINCT recorded_date FROM site_visitor_stats ORDER BY recorded_date DESC LIMIT 1"
     )
     .all()) as { recorded_date: string }[]
   return rows.map((r) => r.recorded_date)
@@ -72,11 +72,12 @@ export async function getVisitorStatsByDate(
 
 const nowIso = () => new Date().toISOString().slice(0, 19).replace("T", " ")
 
-/** บันทึกผลจากบอทรอบเช้า: ใส่ยอดรวม + รอบเช้า */
+/** บันทึกผลจากบอทรอบเช้า: ใส่ยอดรวม + รอบเช้า (ลบข้อมูลวันอื่นก่อน = เก็บแค่วันล่าสุด) */
 export async function saveMorningRound(
   recordedDate: string,
   results: SiteVisitorSnapshot[]
 ): Promise<number> {
+  await db.prepare("DELETE FROM site_visitor_stats WHERE recorded_date != ?").run(recordedDate)
   const updatedAt = nowIso()
   const stmt = await db.prepare(`
     INSERT INTO site_visitor_stats (recorded_date, site_slug, total_visitors, morning_round, evening_round, updated_at)
@@ -95,11 +96,12 @@ export async function saveMorningRound(
   return count
 }
 
-/** บันทึกผลจากบอทรอบเย็น: อัปเดตยอดรวม + คำนวณรอบเย็น = วันนี้ - รอบเช้า */
+/** บันทึกผลจากบอทรอบเย็น: อัปเดตยอดรวม + คำนวณรอบเย็น = วันนี้ - รอบเช้า (ลบข้อมูลวันอื่นก่อน = เก็บแค่วันล่าสุด) */
 export async function saveEveningRound(
   recordedDate: string,
   results: SiteVisitorSnapshot[]
 ): Promise<number> {
+  await db.prepare("DELETE FROM site_visitor_stats WHERE recorded_date != ?").run(recordedDate)
   const getRow = await db.prepare(
     "SELECT morning_round FROM site_visitor_stats WHERE recorded_date = ? AND site_slug = ?"
   )

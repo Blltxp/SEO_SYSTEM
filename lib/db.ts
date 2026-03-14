@@ -113,6 +113,20 @@ CREATE TABLE IF NOT EXISTS site_visitor_stats (
   UNIQUE(recorded_date, site_slug)
 );
 
+CREATE TABLE IF NOT EXISTS website_status (
+  site_slug TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  load_time_ms INTEGER,
+  load_status TEXT NOT NULL,
+  line_ok INTEGER NOT NULL,
+  phone_ok INTEGER NOT NULL,
+  line_reason TEXT,
+  phone_reason TEXT,
+  error TEXT,
+  checked_at TIMESTAMP NOT NULL
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_wp_post_id
 ON posts(source, wp_post_id)
 WHERE wp_post_id IS NOT NULL;
@@ -323,6 +337,20 @@ CREATE TABLE IF NOT EXISTS site_visitor_stats (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(recorded_date, site_slug)
+);
+
+CREATE TABLE IF NOT EXISTS website_status (
+  site_slug TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  load_time_ms INTEGER,
+  load_status TEXT NOT NULL,
+  line_ok INTEGER NOT NULL,
+  phone_ok INTEGER NOT NULL,
+  line_reason TEXT,
+  phone_reason TEXT,
+  error TEXT,
+  checked_at TEXT NOT NULL
 );
 `)
 
