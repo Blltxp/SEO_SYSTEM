@@ -406,7 +406,6 @@ export default function RankingGraphPage() {
     setError(null)
 
     const hiddenElements = Array.from(exportRef.current.querySelectorAll<HTMLElement>('[data-export-hide="true"]'))
-    let exportStage: HTMLDivElement | null = null
 
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -419,37 +418,13 @@ export default function RankingGraphPage() {
         el.style.display = "none"
       })
 
-      const exportClone = exportRef.current.cloneNode(true) as HTMLDivElement
-      exportClone.style.margin = "0"
-      exportClone.style.width = "fit-content"
-      exportClone.style.maxWidth = "none"
-      exportClone.style.display = "inline-block"
-
-      exportStage = document.createElement("div")
-      exportStage.style.position = "fixed"
-      exportStage.style.top = "0"
-      exportStage.style.left = "0"
-      exportStage.style.opacity = "0"
-      exportStage.style.zIndex = "-1"
-      exportStage.style.padding = "24px"
-      exportStage.style.background = "#0b0b0b"
-      exportStage.style.display = "inline-block"
-      exportStage.style.width = "max-content"
-      exportStage.style.pointerEvents = "none"
-      exportStage.appendChild(exportClone)
-      document.body.appendChild(exportStage)
-
-      const sectionNames = ["summary", "heatmap", "detail-chart"] as const
+      const sectionNames = ["summary", "heatmap"] as const
       const zip = new JSZip()
       const baseName = `ranking-trend-report-${(recordedAt || "latest").replace(/[: ]/g, "-")}`
 
-      // summary + heatmap: capture จาก element บนจอ (ไม่ใช่ clone) เพราะ table/grid ใน clone นอก viewport เป็นรูปดำ
-      // detail-chart: capture จาก clone ที่มี LineChart fixed dimensions (SVG render ได้ใน clone)
+      // summary (กราฟ+ภาพรวม) + heatmap: capture จาก element บนจอ (ไม่ใช่ clone) เพราะ table/grid ใน clone นอก viewport เป็นรูปดำ
       for (const sectionName of sectionNames) {
-        const el =
-          sectionName === "detail-chart"
-            ? exportClone.querySelector<HTMLElement>(`[data-export-section="${sectionName}"]`)
-            : exportRef.current?.querySelector<HTMLElement>(`[data-export-section="${sectionName}"]`)
+        const el = exportRef.current?.querySelector<HTMLElement>(`[data-export-section="${sectionName}"]`)
         if (!el) continue
         const canvas = await html2canvas(el, { backgroundColor: "#0b0b0b", scale: 2 })
         const dataUrl = canvas.toDataURL("image/png")
@@ -470,7 +445,6 @@ export default function RankingGraphPage() {
         el.style.display = el.dataset.previousDisplay ?? ""
         delete el.dataset.previousDisplay
       })
-      exportStage?.remove()
       setImageExportLayout(false)
       setExportingImage(false)
     }
@@ -925,7 +899,7 @@ export default function RankingGraphPage() {
           />
           <CardBody className="p-0">
             <div className={imageExportLayout ? "overflow-visible" : "overflow-x-auto"}>
-              <table className="w-full table-fixed text-left text-[10px] leading-tight sm:text-xs">
+              <table className="w-full table-fixed text-left text-xs leading-snug sm:text-sm">
                 <thead>
                   <tr className="border-b border-amber-500/10">
                     <th className="sticky left-0 z-10 w-[180px] bg-zinc-950/95 px-3 py-2.5 font-medium text-amber-100">
@@ -964,7 +938,7 @@ export default function RankingGraphPage() {
                                 </span>
                               </span>
                               {previousRank != null && (
-                                <span className="text-[12px] text-zinc-400 whitespace-nowrap">
+                                <span className="text-sm text-zinc-400 whitespace-nowrap">
                                   จาก {formatRankText(previousRank)}
                                 </span>
                               )}

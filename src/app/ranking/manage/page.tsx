@@ -129,6 +129,7 @@ export default function RankingManagePage() {
             <>
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Button
+                  className="cursor-pointer"
                   variant="secondary"
                   onClick={handleDelete}
                   disabled={selected.size === 0 || deleting}
@@ -140,7 +141,7 @@ export default function RankingManagePage() {
                 <button
                   type="button"
                   onClick={toggleSelectAll}
-                  className="text-sm text-amber-400 hover:text-amber-200"
+                  className="text-sm text-amber-400 hover:text-amber-200 cursor-pointer"
                 >
                   {selected.size === rows.length ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"}
                 </button>

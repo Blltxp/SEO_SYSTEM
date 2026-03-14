@@ -179,11 +179,23 @@ export default function RankingPage() {
         el.style.display = "none"
       })
 
+      // วัดขนาดจาก element จริงบนจอ (โหมด daily ถ้าไม่กำหนดความสูง รูปจะออกมาเป็นเส้นแนวนอน)
+      await new Promise<void>((r) => requestAnimationFrame(() => r()))
+      const rect = exportRef.current.getBoundingClientRect()
+      const sourceW = Math.ceil(rect.width)
+      const sourceH = Math.ceil(rect.height)
+
       const exportClone = exportRef.current.cloneNode(true) as HTMLDivElement
       exportClone.style.margin = "0"
       exportClone.style.width = "fit-content"
       exportClone.style.maxWidth = "none"
       exportClone.style.display = "inline-block"
+      if (sourceW > 0 && sourceH > 0) {
+        exportClone.style.width = `${sourceW}px`
+        exportClone.style.height = `${sourceH}px`
+        exportClone.style.minHeight = `${sourceH}px`
+        exportClone.style.overflow = "hidden"
+      }
 
       exportStage = document.createElement("div")
       exportStage.style.position = "fixed"
@@ -314,7 +326,7 @@ export default function RankingPage() {
         width: auto !important;
         min-width: 100% !important;
         border-collapse: collapse;
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.35;
       }
       th, td {
@@ -387,13 +399,13 @@ export default function RankingPage() {
       td .text-\\[10px\\],
       td .text-\\[9px\\],
       td .text-\\[8px\\] {
-        font-size: 11px !important;
+        font-size: 12px !important;
         line-height: 1.25 !important;
       }
       td .text-emerald-300,
       td .text-red-300,
       td .text-zinc-400 {
-        font-size: 12px !important;
+        font-size: 13px !important;
         font-weight: 800 !important;
       }
       td .text-sky-400 {
@@ -535,7 +547,7 @@ export default function RankingPage() {
         label: "โหมดรายงานผู้บริหาร",
         compact: true,
         wrapperClass: "overflow-x-auto",
-        tableClass: "mx-auto table-fixed text-left text-[10px] leading-tight",
+        tableClass: "mx-auto table-fixed text-left text-xs leading-snug sm:text-sm",
         keywordWidth: "w-[152px]",
         keywordCell: "px-2 py-1.5",
         headCell: "px-1.5 py-2",
@@ -548,7 +560,7 @@ export default function RankingPage() {
         label: "โหมดใช้งานทุกวัน",
         compact: false,
         wrapperClass: "overflow-x-auto",
-        tableClass: "w-full table-fixed text-left text-[11px] leading-tight sm:text-xs",
+        tableClass: "w-full table-fixed text-left text-xs leading-snug sm:text-sm",
         keywordWidth: "w-[150px]",
         keywordCell: "px-3 py-2",
         headCell: "px-3 py-2.5",
@@ -575,22 +587,24 @@ export default function RankingPage() {
       maxWidth="full"
       titleAlign="center"
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2" data-export-hide="true">
-        <span className="text-sm text-zinc-400">รูปแบบตาราง:</span>
-        <Button
-          size="sm"
-          variant={tableMode === "daily" ? "primary" : "secondary"}
-          onClick={() => setTableMode("daily")}
-        >
-          ใช้งานทุกวัน
-        </Button>
-        <Button
-          size="sm"
-          variant={tableMode === "executive" ? "primary" : "secondary"}
-          onClick={() => setTableMode("executive")}
-        >
-          รายงานผู้บริหาร
-        </Button>
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2" data-export-hide="true">
+        <span className="text-sm text-zinc-400">รูปแบบตาราง</span>
+        <div className="flex items-center gap-2">
+          <Button className="cursor-pointer"
+            size="sm"
+            variant={tableMode === "daily" ? "primary" : "secondary"}
+            onClick={() => setTableMode("daily")}
+          >
+            ใช้งานทุกวัน
+          </Button>
+          <Button className="cursor-pointer"
+            size="sm"
+            variant={tableMode === "executive" ? "primary" : "secondary"}
+            onClick={() => setTableMode("executive")}
+          >
+            รายงานผู้บริหาร
+          </Button>
+        </div>
         <span className="text-xs text-zinc-500">
           {tableLayout.compact ? "สรุปเต็มจอ เน้นดูครบทุก keyword" : "อ่านง่าย รายละเอียดครบกว่า"}
         </span>
@@ -605,14 +619,16 @@ export default function RankingPage() {
               : undefined
           }
           align={imageExportLayout ? "center" : "left"}
-          action={
-            <div className="flex flex-wrap items-center gap-2" data-export-hide="true">
-              <label className="flex items-center gap-2 text-sm text-zinc-400">
-                <span>ดูข้อมูลวันที่:</span>
+        />
+        <div className="border-b border-amber-500/10 px-5 py-4" data-export-hide="true">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-sm text-zinc-400">ดูข้อมูลวันที่</span>
                 <select
                   value={viewRecordedAt}
                   onChange={(e) => setViewRecordedAt(e.target.value)}
-                  className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+                  className="min-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
                   disabled={checking || savingManual || exportingImage || savingFile}
                 >
                   <option value="">ล่าสุด</option>
@@ -622,13 +638,13 @@ export default function RankingPage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-400">
-                <span>เทียบกับ:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-sm text-zinc-400">เทียบกับ</span>
                 <select
                   value={compareRecordedAt}
                   onChange={(e) => setCompareRecordedAt(e.target.value)}
-                  className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+                  className="min-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
                   disabled={checking || savingManual || exportingImage || savingFile}
                 >
                   <option value="">รอบก่อนหน้าอัตโนมัติ</option>
@@ -638,11 +654,14 @@ export default function RankingPage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              <Button onClick={handleCheck} loading={checking} disabled={checking || savingManual}>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button className="cursor-pointer" onClick={handleCheck} loading={checking} disabled={checking || savingManual}>
                 เช็คอันดับตอนนี้
               </Button>
               <Button
+                className="cursor-pointer"
                 variant="secondary"
                 onClick={() => {
                   setEditingManual((prev) => !prev)
@@ -651,37 +670,38 @@ export default function RankingPage() {
                 }}
                 disabled={checking || savingManual}
               >
-                {editingManual ? "ยกเลิกแก้ไข" : "กรอกแมนนวล"}
+                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไขด้วยตัวเอง"}
               </Button>
               {editingManual && (
-                <Button variant="secondary" onClick={handleCopyPrevious} disabled={checking || savingManual}>
+                <Button className="cursor-pointer" variant="secondary" onClick={handleCopyPrevious} disabled={checking || savingManual}>
                   คัดลอกจากรอบก่อน
                 </Button>
               )}
               {editingManual && (
-                <Button onClick={handleManualSave} loading={savingManual} disabled={checking || savingManual}>
+                <Button className="cursor-pointer" onClick={handleManualSave} loading={savingManual} disabled={checking || savingManual}>
                   บันทึกแมนนวล
                 </Button>
               )}
-              <Button
+              <span className="mx-2 h-4 w-px shrink-0 bg-zinc-600" aria-hidden />
+              <Button className="cursor-pointer"
                 variant="secondary"
                 onClick={handleExportImage}
                 loading={exportingImage}
                 disabled={checking || savingManual || editingManual}
               >
-                บันทึกเป็นรูป
+                บันทึกรูป
               </Button>
-              <Button
+              <Button className="cursor-pointer"
                 variant="secondary"
                 onClick={handleSaveFile}
                 loading={savingFile}
                 disabled={checking || savingManual || editingManual}
               >
-                Save เป็นไฟล์
+                พิมพ์
               </Button>
             </div>
-          }
-        />
+          </div>
+        </div>
         <CardBody className="p-0">
           {error && (
             <div className="mx-5 mb-4 rounded-lg bg-red-900/20 p-4 text-red-300">
@@ -696,7 +716,7 @@ export default function RankingPage() {
             </div>
           )}
           {checking ? (
-            <div className={imageExportLayout ? "overflow-visible" : tableLayout.wrapperClass}>
+            <div className={imageExportLayout ? `overflow-visible ${!tableLayout.compact ? "min-w-[900px]" : ""}` : tableLayout.wrapperClass}>
               <table className={tableLayout.tableClass}>
                 <thead>
                   <tr className="border-b border-amber-500/10">
@@ -734,7 +754,7 @@ export default function RankingPage() {
                   ))}
                 </tbody>
               </table>
-              <div className={`flex items-center justify-center gap-2 border-t border-amber-500/10 text-zinc-400 ${tableLayout.compact ? "py-2 text-xs" : "py-4"}`}>
+              <div className={`flex items-center justify-center gap-2 border-t border-amber-500/10 text-zinc-400 ${tableLayout.compact ? "py-2 text-xs sm:text-sm" : "py-4 text-sm"}`}>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-400" />
                 กำลังเช็คอันดับ 19 keyword สูงสุดถึงหน้า 2 (Top 20)… ถ้า Google ขอ captcha ระบบจะเปิด Chrome ให้แก้แล้วรอต่ออัตโนมัติ
               </div>
@@ -745,7 +765,7 @@ export default function RankingPage() {
               <code className="rounded bg-zinc-200 px-1.5 py-0.5 dark:bg-zinc-700">npm run check-ranking</code>
             </div>
           ) : (
-            <div className={imageExportLayout ? "overflow-visible" : tableLayout.wrapperClass}>
+            <div className={imageExportLayout ? `overflow-visible ${!tableLayout.compact ? "min-w-[900px]" : ""}` : tableLayout.wrapperClass}>
               <table className={tableLayout.tableClass}>
                 <thead>
                   <tr className="border-b border-amber-500/10">
@@ -798,15 +818,15 @@ export default function RankingPage() {
                                   </span>
                                   {tableLayout.compact ? (
                                     trend ? (
-                                      <span className={`text-[11px] font-semibold ${trend.className}`} title={trend.label}>
+                                      <span className={`text-xs font-semibold sm:text-sm ${trend.className}`} title={trend.label}>
                                         {trend.icon}
                                       </span>
                                     ) : null
                                   ) : (
                                     <>
-                                      {rank > 10 && <span className="text-xs text-zinc-500">อันดับรวม #{rank}</span>}
+                                      {rank > 10 && <span className="text-sm text-zinc-500">อันดับรวม #{rank}</span>}
                                       {trend && (
-                                        <span className={`mt-1 text-[11px] font-semibold ${trend.className}`} title={trend.label}>
+                                        <span className={`mt-1 text-xs font-semibold sm:text-sm ${trend.className}`} title={trend.label}>
                                           {trend.icon} {trend.label}
                                         </span>
                                       )}
@@ -815,7 +835,7 @@ export default function RankingPage() {
                                           href={r.url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="mt-1 text-xs text-sky-400 hover:underline"
+                                          className="mt-1 text-sm text-sky-400 hover:underline"
                                           title={r.url}
                                         >
                                           ลิงก์
@@ -828,20 +848,20 @@ export default function RankingPage() {
                                 <div className={tableLayout.compact ? "flex items-center justify-center gap-1" : "flex flex-col items-center text-center"}>
                                   <span>-</span>
                                   {trend && (
-                                    <span className={`${tableLayout.compact ? "text-[11px]" : "mt-1 text-[11px]"} font-semibold ${trend.className}`} title={trend.label}>
+                                    <span className={`${tableLayout.compact ? "text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm"} font-semibold ${trend.className}`} title={trend.label}>
                                       {tableLayout.compact ? trend.icon : `${trend.icon} ${trend.label}`}
                                     </span>
                                   )}
                                 </div>
                               )}
                             </div>
-                            {!tableLayout.compact && <div className="text-xs text-zinc-500 text-center">{v.label}</div>}
+                            {!tableLayout.compact && <div className="text-sm text-zinc-500 text-center">{v.label}</div>}
                             {editingManual && (
                               <input
                                 value={draftValue}
                                 onChange={(e) => handleManualDraftChange(kw, s.slug, e.target.value)}
                                 placeholder={displayManualFormat(rank)}
-                                className={`mx-auto mt-1 block ${tableLayout.inputWidth} rounded-md border border-zinc-700 bg-black/40 px-2 py-1 text-center text-[10px] text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none`}
+                                className={`mx-auto mt-1 block ${tableLayout.inputWidth} rounded-md border border-zinc-700 bg-black/40 px-2 py-1 text-center text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none`}
                               />
                             )}
                           </td>
@@ -855,7 +875,7 @@ export default function RankingPage() {
           )}
         </CardBody>
         {rows.length > 0 && !checking && !tableLayout.compact && (
-          <div className="border-t border-amber-500/10 px-5 py-3 text-xs text-zinc-400">
+          <div className="border-t border-amber-500/10 px-5 py-3 text-sm text-zinc-400">
             ตารางนี้นับเฉพาะผลค้นหาเว็บแบบ SEO Rank บน Google Web Search และตัดโฆษณา, local pack และลิงก์ย่อยของโดเมนเดียวกันออกแล้ว
             โหมดเช็คหลักถูกลดเหลือสูงสุดหน้า 2 (Top 20) เพื่อลดการเจอ captcha และให้ใช้งานจริงได้ง่ายขึ้น
             ถ้าข้อมูลบางช่องไม่ตรงกับที่เช็คมือ ให้กดปุ่ม <code className="rounded bg-black/40 px-1 text-amber-200">กรอกแมนนวล</code> แล้วกรอกแบบ

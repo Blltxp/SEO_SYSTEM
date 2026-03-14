@@ -51,14 +51,14 @@ export default function ArticleTitlesPage() {
 
   return (
     <PageLayout
-      title="ตรวจสอบหัวข้อบทความ"
+      title="เช็คหัวข้อบทความ"
       description="กรอกหัวข้อที่คิดไว้ แล้วกดค้นหาเพื่อเทียบกับที่มีใน 6 เว็บ — ถ้าคล้ายเกิน 60% จะแจ้งว่ามีแล้ว"
       maxWidth="lg"
       titleAlign="center"
     >
       <Card className="border-amber-500/20 bg-gradient-to-br from-[#1c1710] to-[#0c0c0c]">
         <CardHeader
-          title="ตรวจสอบความซ้ำ"
+          title="ตรวจสอบชื่อหัวข้อบทความว่ามีซ้ำกับที่มีในระบบหรือไม่"
           subtitle="เปรียบเทียบความคล้ายคลึงกับหัวข้อที่มีใน 6 เว็บ (แม่บ้านดีดี, แม่บ้านดีดีเซอร์วิส, แม่บ้านอินเตอร์, นาซ่าลาดพร้าว, แม่บ้านสยาม, แม่บ้านสุขสวัสดิ์)"
           align="center"
         />
@@ -76,7 +76,7 @@ export default function ArticleTitlesPage() {
             <Button
               onClick={handleSearch}
               loading={loading}
-              className="shrink-0 gap-2"
+              className="shrink-0 gap-2 cursor-pointer"
             >
               <Search className="h-4 w-4" />
               ค้นหา

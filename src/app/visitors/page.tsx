@@ -58,6 +58,7 @@ export default function VisitorsPage() {
   }, [fetchData])
 
   const handleCheck = async (round: "morning" | "evening") => {
+    if (round === "morning" && hasMorningChecked) return
     setError(null)
     if (round === "morning") setCheckingMorning(true)
     else setCheckingEvening(true)
@@ -207,6 +208,9 @@ export default function VisitorsPage() {
 
   const displayDate = date || new Date().toISOString().slice(0, 10)
 
+  /** มีการเช็ครอบเช้าไปแล้วสำหรับวันที่แสดงอยู่ → ไม่ให้กดรอบเช้าซ้ำ */
+  const hasMorningChecked = rows.some((r) => r.morning_round != null)
+
   if (loading) {
     return (
       <PageLayout title="จำนวนคนเข้าชมเว็บไซต์" description="สถานะเว็บไซต์ประจำวัน">
@@ -243,22 +247,24 @@ export default function VisitorsPage() {
                   ))}
                 </select>
               </label>
-              <Button
+              <Button className="cursor-pointer"
                 onClick={() => handleCheck("morning")}
                 loading={checkingMorning}
-                disabled={checkingMorning || checkingEvening || editingManual}
+                disabled={checkingMorning || checkingEvening || editingManual || hasMorningChecked}
+                title={hasMorningChecked ? "เช็ครอบเช้าไปแล้ว ไม่สามารถกดซ้ำได้" : undefined}
               >
-                รอบเช้า
+                เช็คจำนวนรอบเช้า
               </Button>
               <Button
                 variant="secondary"
+                className="cursor-pointer"
                 onClick={() => handleCheck("evening")}
                 loading={checkingEvening}
                 disabled={checkingMorning || checkingEvening || editingManual}
               >
-                รอบเย็น
+                เช็คจำนวนรอบเย็น
               </Button>
-              <Button
+              <Button className="cursor-pointer"
                 variant="secondary"
                 onClick={() => {
                   setEditingManual((prev) => !prev)
@@ -267,24 +273,26 @@ export default function VisitorsPage() {
                 }}
                 disabled={checkingMorning || checkingEvening}
               >
-                {editingManual ? "ยกเลิกแก้ไข" : "กรอกมือ"}
+                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไขด้วยตัวเอง"}
               </Button>
               {editingManual && (
                 <Button
+                  className="cursor-pointer"
                   onClick={handleManualSave}
                   loading={savingManual}
                   disabled={checkingMorning || checkingEvening || savingManual}
                 >
-                  บันทึกแมนนวล
+                  บันทึก
                 </Button>
               )}
               <Button
                 variant="secondary"
+                className="cursor-pointer"
                 onClick={handleExportImage}
                 loading={exportingImage}
                 disabled={checkingMorning || checkingEvening || editingManual}
               >
-                บันทึกเป็นรูป
+                บันทึกรูป
               </Button>
             </div>
           }
@@ -297,7 +305,7 @@ export default function VisitorsPage() {
           )}
           {editingManual && (
             <div className="mx-5 mb-4 rounded-lg border border-amber-500/20 bg-zinc-900/70 p-4 text-sm text-zinc-300" data-export-hide="true">
-              กรอกยอดสำหรับเว็บที่บอทดึงไม่ได้ (เช่น นาซ่า แม่บ้านดีดีเซอร์วิส) แล้วกด บันทึกแมนนวล
+              กรอกยอดสำหรับเว็บที่บอทดึงไม่ได้ (เช่น นาซ่า แม่บ้านดีดีเซอร์วิส) แล้วกด บันทึก
             </div>
           )}
           <div className="overflow-x-auto">
@@ -306,7 +314,7 @@ export default function VisitorsPage() {
                 <tr className="border-b border-zinc-700">
                   <th className="px-4 py-3 font-semibold text-amber-100">เว็บไซต์</th>
                   <th colSpan={4} className="border-l border-zinc-700 px-2 py-2 text-center font-semibold text-amber-100">
-                    ผู้เข้าชม
+                    จำนวนคนเข้าชมผู้เข้าชมเว็บไซต์
                   </th>
                 </tr>
                 <tr className="border-b border-zinc-700/80">

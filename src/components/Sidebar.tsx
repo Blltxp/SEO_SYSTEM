@@ -9,8 +9,10 @@ const NAV_ITEMS = [
   { href: "/ranking", label: "ตารางอันดับ Keyword", icon: Table2 },
   { href: "/visitors", label: "จำนวนคนเข้าชม", icon: Users },
   { href: "/website-status", label: "สถานะเว็บไซต์", icon: Activity },
-  { href: "/article-titles", label: "หัวข้อบทความแนะนำ", icon: FileText },
+  { href: "/article-titles", label: "เช็คหัวข้อบทความ", icon: FileText },
   { href: "/duplicates", label: "รายงานบทความซ้ำ", icon: Copy },
+]
+const NAV_BOTTOM_ITEMS = [
   { href: "/ranking/manage", label: "จัดการข้อมูล Ranking", icon: Trash2 },
 ]
 
@@ -25,29 +27,53 @@ export function Sidebar() {
         </div>
         <span className="font-semibold tracking-tight text-amber-100">SEO System</span>
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            path === href ||
-            (href === "/ranking" ? path === "/ranking" : href !== "/ranking/graph" && path.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "bg-amber-500/15 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.2)]"
-                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
-              }`}
-            >
-              <Icon
-                className={`h-5 w-5 shrink-0 ${isActive ? "text-amber-400" : "text-zinc-500"}`}
-                strokeWidth={2}
-              />
-              <span>{label}</span>
-            </Link>
-          )
-        })}
+      <nav className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive =
+              path === href ||
+              (href === "/ranking" ? path === "/ranking" : href !== "/ranking/graph" && path.startsWith(href))
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-amber-500/15 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.2)]"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+                }`}
+              >
+                <Icon
+                  className={`h-5 w-5 shrink-0 ${isActive ? "text-amber-400" : "text-zinc-500"}`}
+                  strokeWidth={2}
+                />
+                <span>{label}</span>
+              </Link>
+            )
+          })}
+        </div>
+        <div className="shrink-0 space-y-0.5 border-t border-zinc-800/80 px-2 py-3">
+          {NAV_BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = path === href || path.startsWith(href + "/")
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-amber-500/15 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.2)]"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+                }`}
+              >
+                <Icon
+                  className={`h-5 w-5 shrink-0 ${isActive ? "text-amber-400" : "text-zinc-500"}`}
+                  strokeWidth={2}
+                />
+                <span>{label}</span>
+              </Link>
+            )
+          })}
+        </div>
       </nav>
       <div className="shrink-0 border-t border-zinc-800/80 px-4 py-3">
         <p className="text-xs text-zinc-500">6 เว็บ · 19 keyword</p>

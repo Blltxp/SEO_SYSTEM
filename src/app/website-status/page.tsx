@@ -174,16 +174,17 @@ export default function WebsiteStatusPage() {
           subtitle={lastCheckedAt ? `เช็คล่าสุดเมื่อ ${displayDate}` : "กดปุ่มเช็คใหม่เพื่อตรวจสอบ"}
           action={
             <div className="flex flex-wrap items-center gap-2" data-export-hide="true">
-              <Button onClick={handleCheck} loading={checking} disabled={checking}>
+              <Button onClick={handleCheck} loading={checking} disabled={checking} className="cursor-pointer">
                 เช็คสถานะปุ่มและความเร็วเว็บไซต์
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleExportImage}
+                className="cursor-pointer"
                 loading={exportingImage}
                 disabled={checking || results.length === 0}
               >
-                บันทึกเป็นรูป
+                บันทึกรูป
               </Button>
             </div>
           }
