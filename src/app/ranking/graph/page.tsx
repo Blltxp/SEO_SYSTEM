@@ -471,44 +471,74 @@ export default function RankingGraphPage() {
     <meta charset="utf-8" />
     <title>Ranking Trend Report</title>
     <style>
-      @page { size: A4 landscape; margin: 24mm; }
+      @page { size: A4 landscape; margin: 20mm; }
       * { box-sizing: border-box; }
       body {
         font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-        background: #ffffff;
+        background: #fff;
         color: #111827;
         margin: 0;
-        padding: 10mm 14mm;
+        padding: 12mm 16mm;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+      .print-center-wrapper {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+      }
+      [data-export-section="summary"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+        page-break-inside: avoid;
+      }
+      [data-export-section="summary"] > * {
+        min-width: 0;
+      }
+      [data-export-section="detail-chart"] {
         display: flex !important;
         flex-direction: column !important;
-        align-items: center !important;
+        width: 100% !important;
+        min-height: 320px !important;
       }
-      body > div { width: 100% !important; max-width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important; }
-      [data-chart-wrapper] { display: flex !important; justify-content: center !important; width: 100% !important; }
-      [data-chart-wrapper] > div { margin: 0 auto !important; display: block !important; }
-      [data-chart-wrapper] .recharts-responsive-container { margin: 0 auto !important; display: block !important; }
-      [data-chart-wrapper] .recharts-wrapper { margin: 0 auto !important; left: 50% !important; transform: translateX(-50%) !important; }
-      h1, h2, h3 { color: #111827; margin: 0; }
-      .rounded-2xl, .rounded-xl, .rounded-lg { border-radius: 10px !important; }
+      [data-chart-wrapper] {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-height: 0 !important;
+      }
+      [data-chart-wrapper] .recharts-responsive-container { width: 100% !important; max-width: 100% !important; }
+      [data-chart-wrapper] .recharts-wrapper { margin: 0 auto !important; }
+      h1, h2, h3 { color: #111827; margin: 0 0 4px 0; font-size: 1rem; }
+      .rounded-2xl, .rounded-xl, .rounded-lg { border-radius: 8px !important; }
       .report-page {
         page-break-after: always;
         break-after: page;
-        margin-bottom: 10mm !important;
+        margin-bottom: 16px;
       }
       .report-page:last-child {
         page-break-after: auto;
         break-after: auto;
-        margin-bottom: 0 !important;
+        margin-bottom: 0;
       }
-      .shadow-\\[0_12px_40px_rgba\\(0\\,0\\,0\\,0\\.35\\)\\], .shadow-sm { box-shadow: none !important; }
+      [data-export-section="heatmap"] {
+        page-break-before: always;
+        break-before: page;
+        margin-top: 8px;
+        padding-top: 12px;
+      }
+      .shadow-\\[0_12px_40px_rgba\\(0\\,0\\,0\\,0\\.35\\)\\], .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important; }
       .backdrop-blur { backdrop-filter: none !important; }
       .bg-zinc-950\\/85, .bg-zinc-950\\/90, .bg-zinc-950\\/95, .bg-zinc-900\\/80, .bg-zinc-900\\/70, .bg-black\\/40 {
-        background: transparent !important;
+        background: #fafafa !important;
       }
       .border-amber-500\\/15, .border-amber-500\\/10, .border-amber-500\\/20, .border-zinc-700 {
-        border-color: #d1d5db !important;
+        border: 1px solid #e5e7eb !important;
       }
       .text-amber-50, .text-amber-100, .text-amber-200, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400, .text-zinc-500, .text-zinc-600 {
         color: #111827 !important;
@@ -523,62 +553,59 @@ export default function RankingGraphPage() {
       .overflow-x-auto, .overflow-visible { overflow: visible !important; }
       .sticky { position: static !important; }
       .grid { display: grid !important; }
-      .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-      .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      .lg\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
       .gap-3 { gap: 12px !important; }
       .gap-4 { gap: 16px !important; }
+      .gap-6 { gap: 20px !important; }
+      .mb-6 { margin-bottom: 20px !important; }
       .bg-emerald-950\\/25, .bg-emerald-950\\/30 { background: #dff7ea !important; }
       .bg-rose-950\\/25 { background: #ffd6d6 !important; }
       .bg-zinc-900\\/50, .bg-zinc-900\\/60 { background: #f3f4f6 !important; }
       .bg-amber-500\\/10, .bg-amber-400\\/15 { background: #fff7ed !important; }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 11px;
-        line-height: 1.3;
-      }
-      th, td {
-        border: 1px solid #d1d5db;
-        padding: 6px 8px;
-        text-align: center;
-        vertical-align: middle;
-      }
+      table { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.35; }
+      th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: center; vertical-align: middle; }
       th:first-child, td:first-child { text-align: left; }
-      th {
-        background: #f3f4f6 !important;
-        font-weight: 700;
-      }
-      td > div {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-      }
+      th { background: #f3f4f6 !important; font-weight: 700; }
+      td > div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
       td:first-child > div { align-items: flex-start; }
-      .font-semibold, .font-medium { font-weight: 700 !important; }
-      [data-export-section="heatmap"] { page-break-inside: avoid !important; max-width: 100% !important; overflow: hidden !important; box-sizing: border-box !important; transform: scale(0.90); transform-origin: center top !important; }
-      [data-export-section="heatmap"] table { font-size: 16px !important; line-height: 1.3 !important; table-layout: fixed !important; width: 100% !important; max-width: 100% !important; }
-      [data-export-section="heatmap"] th, [data-export-section="heatmap"] td { padding: 8px 4px !important; min-height: 2.2em !important; overflow: hidden !important; word-break: break-word !important; }
-      [data-export-section="heatmap"] [data-heatmap-cell] { flex-direction: row !important; flex-wrap: nowrap !important; gap: 2px !important; display: flex !important; min-height: 1.5em !important; align-items: center !important; justify-content: center !important; }
+      .font-semibold, .font-medium { font-weight: 600 !important; }
+      [data-export-section="heatmap"] {
+        page-break-inside: avoid;
+        max-width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+      [data-export-section="heatmap"] table {
+        font-size: 12px !important;
+        line-height: 1.35 !important;
+        table-layout: fixed !important;
+        width: 100% !important;
+      }
+      [data-export-section="heatmap"] th,
+      [data-export-section="heatmap"] td {
+        padding: 6px 4px !important;
+        min-height: 2em !important;
+        word-break: break-word !important;
+      }
+      [data-export-section="heatmap"] [data-heatmap-cell] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 2px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
       [data-export-section="heatmap"] [data-heatmap-cell] span { white-space: nowrap !important; }
-      [data-export-section="detail-chart"] { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; width: 100% !important; min-height: 50vh !important; margin-left: auto !important; margin-right: auto !important; }
-      [data-export-section="detail-chart"] > div { width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; }
-      [data-export-section="detail-chart"] .mx-auto { margin-left: auto !important; margin-right: auto !important; display: block !important; }
       input, button, a[href^="/"], a[href^="javascript"], [data-export-hide="true"] { display: none !important; }
-      body { display: flex !important; flex-direction: column !important; align-items: center !important; width: 100% !important; }
-      body > div { width: 100% !important; max-width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important; }
-      [data-chart-wrapper] { display: flex !important; justify-content: center !important; width: 100% !important; }
-      [data-chart-wrapper] > div { margin: 0 auto !important; display: block !important; }
-      [data-chart-wrapper] .recharts-responsive-container { margin: 0 auto !important; display: block !important; }
-      [data-chart-wrapper] .recharts-wrapper { margin: 0 auto !important; left: 50% !important; transform: translateX(-50%) !important; }
-      .print-center-wrapper { width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important; }
       @media print {
-        body { margin: 0 !important; display: flex !important; flex-direction: column !important; align-items: center !important; }
-        .print-center-wrapper { width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important; }
+        body { padding: 0 !important; }
+        .print-center-wrapper { padding: 0 !important; }
+        [data-export-section="summary"] { margin-bottom: 12px !important; }
+        [data-export-section="heatmap"] { margin-top: 0 !important; padding-top: 0 !important; }
       }
     </style>
   </head>
-  <body><div class="print-center-wrapper" style="width:100%;display:flex;flex-direction:column;align-items:center">${reportHtml}</div></body>
+  <body><div class="print-center-wrapper">${reportHtml}</div></body>
 </html>`)
       printWindow.document.close()
       printWindow.focus()
