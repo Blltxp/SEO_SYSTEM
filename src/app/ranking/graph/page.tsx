@@ -17,6 +17,7 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts"
+import { getSiteColor as getSiteColorBySlug, getSiteDisplayName } from "@/lib/siteColors"
 
 type RankHistoryRow = { recorded_date: string; site_slug: string; rank: number }
 type RankRow = { site_slug: string; keyword: string; rank: number; url: string | null }
@@ -42,18 +43,11 @@ const RANGE_OPTIONS = [
 ]
 
 const NOT_FOUND = 999
-const SITE_COLOR_MAP: Record<string, string> = {
-  maidwonderland: "#f0f0f0", // แม่บ้านดีดี - ขาว
-  maidsiam: "#ec4899", // แม่บ้านสยาม - ชมพู
-  nasaladphrao48: "#22c55e", // นาซ่าลาดพร้าว - เขียว
-  ddmaid: "#06b6d4", // แม่บ้านอินเตอร์ - ฟ้า
-  ddmaidservice: "#2563eb", // แม่บ้านดีดีเซอร์วิส - น้ำเงิน
-  suksawatmaid: "#a855f7" // แม่บ้านสุขสวัสดิ์ - ม่วง
-}
+const KEYWORD_AVERAGE_ALL = "__average__"
 const AVERAGE_LINE_COLOR = "#eab308" // เฉลี่ย - เหลือง
 
 function getSiteColor(site: Site): string {
-  return SITE_COLOR_MAP[site.slug] ?? "#94a3b8"
+  return getSiteColorBySlug(site.slug)
 }
 
 function getDateRange(range: string, endRecordedAt?: string): { from: string; to: string } {
@@ -169,6 +163,58 @@ function formatUniformScaleForTooltip(value: number): string {
   return UNIFORM_SCALE_LABELS[Math.max(0, Math.min(i, 5))] ?? "-"
 }
 
+/** แสดงอันดับจริงใน tooltip (เลข #1, #5, ไม่พบ) แทน Top 10 / Top 20 */
+function DetailChartTooltip({
+  active,
+  payload,
+  label,
+  chartData
+}: {
+  active?: boolean
+  payload?: { name: string; value: number; dataKey: string; color: string }[]
+  label?: string
+  chartData: Record<string, number | string>[]
+}) {
+  if (!active || !payload?.length || label == null) return null
+  const row = chartData.find((r) => String(r.name) === String(label))
+  if (!row) return null
+  const siteEntries = payload.filter((p) => p.dataKey !== "average")
+  let sum = 0
+  let count = 0
+  for (const p of siteEntries) {
+    const rank = row[p.dataKey]
+    const num = typeof rank === "number" ? rank : Number(rank) ?? NOT_FOUND
+    if (num < NOT_FOUND) {
+      sum += num
+      count += 1
+    }
+  }
+  const avg = count > 0 ? sum / count : NOT_FOUND
+  const avgText = avg >= NOT_FOUND ? "ไม่พบ" : `#${Math.round(avg)}`
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-zinc-900 px-3 py-2.5 shadow-lg">
+      <p className="mb-2 text-xs font-medium text-zinc-400">{formatRecordedAt(String(label))}</p>
+      <ul className="space-y-1 text-sm">
+        {siteEntries.map((p) => {
+          const rank = row[p.dataKey]
+          const num = typeof rank === "number" ? rank : Number(rank) ?? NOT_FOUND
+          const text = num >= NOT_FOUND ? "ไม่พบ" : `#${Math.round(num)}`
+          return (
+            <li key={p.dataKey} className="flex items-center gap-2" style={{ color: p.color }}>
+              <span className="font-medium">{p.name}:</span>
+              <span>{text}</span>
+            </li>
+          )
+        })}
+        <li className="flex items-center gap-2 border-t border-zinc-600/80 pt-1.5 mt-1.5" style={{ color: AVERAGE_LINE_COLOR }}>
+          <span className="font-medium">อันดับเฉลี่ยทุกเว็บไซต์:</span>
+          <span>{avgText}</span>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
 export default function RankingGraphPage() {
   const [keywords, setKeywords] = useState<string[]>([])
   const [sites, setSites] = useState<Site[]>([])
@@ -218,8 +264,8 @@ export default function RankingGraphPage() {
     setAvailableRecordedDates(latest.availableRecordedDates || [])
     setKeywords(nextKeywords)
     setSites(nextSites)
-    if (!keyword && nextKeywords.length > 0) {
-      setKeyword(nextKeywords[0])
+    if (!keyword) {
+      setKeyword(KEYWORD_AVERAGE_ALL)
     }
   }, [viewRecordedAt, compareRecordedAt, keyword])
 
@@ -340,10 +386,13 @@ export default function RankingGraphPage() {
     const map = new Map<string, number>()
     for (const site of sites) {
       let sum = 0
-      let count = keywords.length
+      let count = 0
       for (const kw of keywords) {
         const rank = latestRankMap.get(getCellKey(kw, site.slug))?.rank ?? NOT_FOUND
-        sum += rank
+        if (rank < NOT_FOUND) {
+          sum += rank
+          count += 1
+        }
       }
       map.set(site.slug, count > 0 ? sum / count : NOT_FOUND)
     }
@@ -570,7 +619,7 @@ export default function RankingGraphPage() {
 
   if (loadingTrend && !latestRows.length) {
     return (
-      <PageLayout title="แดชบอร์ด SEO" description="โหลดข้อมูล…" titleAlign="center">
+      <PageLayout title="Dashboard SEO" description="โหลดข้อมูล…" titleAlign="center">
         <div className="flex items-center justify-center gap-2 text-zinc-500">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
           กำลังโหลด…
@@ -581,7 +630,7 @@ export default function RankingGraphPage() {
 
   return (
     <PageLayout
-      title="แดชบอร์ด SEO"
+      title="Dashboard SEO"
       description="ภาพรวมแนวโน้ม 6 เว็บ · Heatmap ทุก keyword · กราฟเจาะลึก"
       maxWidth="full"
       titleAlign="center"
@@ -614,18 +663,6 @@ export default function RankingGraphPage() {
               <option key={value} value={value}>
                 {formatRecordedAt(value)}
               </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <span>Keyword:</span>
-          <select
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
-          >
-            {keywords.map((kw) => (
-              <option key={kw} value={kw}>{kw}</option>
             ))}
           </select>
         </label>
@@ -671,52 +708,35 @@ export default function RankingGraphPage() {
       </div>
 
       <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
-        {/* แนวโน้ม SEO Rank + กราฟ อยู่คู่กัน */}
+        {/* กราฟซ้าย · ภาพรวมขวา */}
         <div
           className={`mb-6 grid gap-6 ${imageExportLayout ? "" : "lg:grid-cols-2"}`}
           data-export-section="summary"
         >
-          <Card className={`report-page ${imageExportLayout ? "mx-auto w-fit" : ""}`}>
-            <CardHeader
-              title="ภาพรวมแนวโน้ม SEO Rank"
-              subtitle={
-                recordedAt
-                  ? `ข้อมูลล่าสุด: ${formatRecordedAt(recordedAt)}${previousRecordedAt ? ` | รอบเปรียบเทียบ: ${formatRecordedAt(previousRecordedAt)}` : ""}`
-                  : undefined
-              }
-              align={imageExportLayout ? "center" : "left"}
-            />
-            <CardBody>
-              {error && (
-                <div className="mb-4 rounded-lg bg-red-900/20 p-4 text-red-300">
-                  {error}
-                </div>
-              )}
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                {summaryCards.map((site) => (
-                  <div key={site.slug} className="rounded-xl border border-amber-500/15 bg-zinc-950/70 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-amber-100">{site.name}</h3>
-                      <span className="text-xs text-zinc-400">{keywords.length} keyword</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="rounded-lg bg-emerald-950/30 px-3 py-2 text-emerald-300">ดีขึ้น {site.up}</div>
-                      <div className="rounded-lg bg-rose-950/25 px-3 py-2 text-red-300">แย่ลง {site.down}</div>
-                      <div className="rounded-lg bg-zinc-900/60 px-3 py-2 text-zinc-300">คงเดิม {site.same}</div>
-                      <div className="rounded-lg bg-zinc-900/60 px-3 py-2 text-zinc-300">ไม่พบ {site.notFound}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-
           <Card className={`report-page ${imageExportLayout ? "mx-auto w-fit" : ""}`} data-export-section="detail-chart">
             <CardHeader
               title="กราฟเจาะลึกตาม Keyword"
-              subtitle={keyword ? `แนวโน้มย้อนหลังของ keyword: ${keyword} · แกน Y: อันดับ 1 (บน) = ดีที่สุด, 999 (ล่าง) = ไม่พบ` : "เลือก keyword เพื่อดูกราฟย้อนหลัง"}
+              subtitle={
+                keyword === KEYWORD_AVERAGE_ALL
+                  ? "เฉลี่ยทุก keyword (ตรงกับแถวเฉลี่ยใน Heatmap) · แกน Y: อันดับ 1 (บน) = ดีที่สุด, ไม่พบ (ล่าง) = 0"
+                  : keyword
+                    ? `แนวโน้มย้อนหลังของ keyword: ${keyword} · แกน Y: อันดับ 1 (บน) = ดีที่สุด, 999 (ล่าง) = ไม่พบ`
+                    : "เลือก keyword เพื่อดูกราฟย้อนหลัง"
+              }
               align={imageExportLayout ? "center" : "left"}
+              action={
+                <select
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  className="rounded-lg border border-zinc-600 bg-zinc-900/90 px-3 py-1.5 text-sm text-zinc-200"
+                  data-export-hide="true"
+                >
+                  <option value={KEYWORD_AVERAGE_ALL}>เฉลี่ยทุก Keyword</option>
+                  {keywords.map((kw) => (
+                    <option key={kw} value={kw}>{kw}</option>
+                  ))}
+                </select>
+              }
             />
             <CardBody className={chartData.length > 0 ? "pb-0" : undefined}>
               {loading && !chartData.length ? (
@@ -753,16 +773,11 @@ export default function RankingGraphPage() {
                           ticks={[...UNIFORM_SCALE_TICKS]}
                         />
                         <Tooltip
-                          formatter={(value) => {
-                            const v = typeof value === "number" ? value : 0
-                            return formatUniformScaleForTooltip(v)
-                          }}
-                          labelFormatter={(value) => formatRecordedAt(String(value))}
+                          content={<DetailChartTooltip chartData={chartData} />}
                           contentStyle={{
-                            backgroundColor: "#111111",
-                            borderColor: "rgba(245, 158, 11, 0.2)",
-                            borderRadius: 12,
-                            color: "#f4f4f5"
+                            backgroundColor: "transparent",
+                            border: "none",
+                            padding: 0
                           }}
                         />
                         {sites.map((site, index) => (
@@ -809,16 +824,11 @@ export default function RankingGraphPage() {
                           width={48}
                         />
                         <Tooltip
-                          formatter={(value) => {
-                            const v = typeof value === "number" ? value : 0
-                            return formatUniformScaleForTooltip(v)
-                          }}
-                          labelFormatter={(value) => formatRecordedAt(String(value))}
+                          content={<DetailChartTooltip chartData={chartData} />}
                           contentStyle={{
-                            backgroundColor: "#111111",
-                            borderColor: "rgba(245, 158, 11, 0.2)",
-                            borderRadius: 12,
-                            color: "#f4f4f5"
+                            backgroundColor: "transparent",
+                            border: "none",
+                            padding: 0
                           }}
                         />
                         {sites.map((site, index) => (
@@ -851,18 +861,58 @@ export default function RankingGraphPage() {
                 </div>
                 <div className="shrink-0 border-t border-zinc-700/80 px-2 pt-2.5 pb-2 flex flex-wrap justify-center gap-x-6 gap-y-1.5" data-export-hide="true">
                   {sites.map((site, index) => (
-                    <span key={site.slug} className="inline-flex items-center gap-2 text-xs text-zinc-400">
+                    <span key={site.slug} className="inline-flex items-center gap-2 text-xs">
                       <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: getSiteColor(site) }} />
-                      {site.name}
+                      <span style={{ color: getSiteColor(site) }}>{getSiteDisplayName(site.name || site.slug)}</span>
                     </span>
                   ))}
                   <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0 border-2 border-dashed border-zinc-500" style={{ backgroundColor: AVERAGE_LINE_COLOR }} />
-                    เฉลี่ย
+                    ค่าเฉลี่ยทุกเว็บไซต์
                   </span>
                 </div>
               </div>
               )}
+            </CardBody>
+          </Card>
+
+          <Card className={`report-page ${imageExportLayout ? "mx-auto w-fit" : ""}`}>
+            <CardHeader
+              title="ภาพรวมแนวโน้ม SEO Rank"
+              subtitle={
+                recordedAt
+                  ? `ข้อมูลล่าสุด: ${formatRecordedAt(recordedAt)}${previousRecordedAt ? ` | รอบเปรียบเทียบ: ${formatRecordedAt(previousRecordedAt)}` : ""}`
+                  : undefined
+              }
+              align={imageExportLayout ? "center" : "left"}
+            />
+            <CardBody>
+              {error && (
+                <div className="mb-4 rounded-lg bg-red-900/20 p-4 text-red-300">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
+                {summaryCards.map((site) => (
+                  <div
+                    key={site.slug}
+                    className="rounded-xl border border-amber-500/15 p-4 text-amber-100"
+                    style={{ backgroundColor: `${getSiteColor(site)}44` }}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="font-semibold">{site.name}</h3>
+                      <span className="text-xs text-zinc-300">{keywords.length} keyword</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-lg bg-emerald-950/30 px-3 py-2 text-emerald-300">ดีขึ้น {site.up}</div>
+                      <div className="rounded-lg bg-rose-950/25 px-3 py-2 text-red-300">แย่ลง {site.down}</div>
+                      <div className="rounded-lg bg-zinc-900/60 px-3 py-2 text-zinc-300">คงเดิม {site.same}</div>
+                      <div className="rounded-lg bg-zinc-900/60 px-3 py-2 text-zinc-300">ไม่พบ {site.notFound}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardBody>
           </Card>
         </div>
@@ -882,8 +932,14 @@ export default function RankingGraphPage() {
                       Keyword
                     </th>
                     {sites.map((site) => (
-                      <th key={site.slug} className="w-[120px] bg-zinc-950/90 px-2 py-2.5 text-center font-medium text-amber-100">
-                        <div className="mx-auto max-w-[100px] break-words leading-tight">{site.name}</div>
+                      <th
+                        key={site.slug}
+                        className="w-[120px] px-2 py-2.5 text-center font-medium text-amber-100"
+                        style={{ backgroundColor: `${getSiteColor(site)}99` }}
+                      >
+                        <div className="mx-auto max-w-[100px] break-words leading-tight">
+                          {getSiteDisplayName(site.name || site.slug)}
+                        </div>
                       </th>
                     ))}
                   </tr>

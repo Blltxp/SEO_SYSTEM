@@ -6,6 +6,7 @@ import { toPng } from "html-to-image"
 import { PageLayout } from "../../components/PageLayout"
 import { Card, CardBody, CardHeader } from "../../components/ui/Card"
 import { Button } from "../../components/ui/Button"
+import { getSiteDisplayName, getSiteColor } from "@/lib/siteColors"
 
 const KEYWORD_AVOID_VISIBILITY = "หาแรงงานต่างด้าว"
 
@@ -705,12 +706,13 @@ export default function RankingPage() {
                     {sites.map((s) => (
                       <th
                         key={s.slug}
-                        className={`${tableLayout.siteWidth} bg-zinc-950/90 text-center font-medium text-amber-100 ${tableLayout.headCell}`}
+                        className={`${tableLayout.siteWidth} text-center font-medium text-amber-100 ${tableLayout.headCell}`}
+                        style={{ backgroundColor: `${getSiteColor(s.slug)}99` }}
                       >
                         <div
                           className={`mx-auto flex ${tableLayout.compact ? "min-h-[2rem]" : "min-h-[2rem]"} ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.15]" : "whitespace-normal leading-tight"}`}
                         >
-                          {s.name}
+                          {getSiteDisplayName(s.name || s.slug)}
                         </div>
                       </th>
                     ))}
@@ -753,12 +755,13 @@ export default function RankingPage() {
                     {sites.map((s) => (
                       <th
                         key={s.slug}
-                        className={`${tableLayout.siteWidth} bg-zinc-950/90 text-center font-medium text-amber-100 ${tableLayout.headCell}`}
+                        className={`${tableLayout.siteWidth} text-center font-medium text-amber-100 ${tableLayout.headCell}`}
+                        style={{ backgroundColor: `${getSiteColor(s.slug)}99` }}
                       >
                         <div
                           className={`mx-auto flex ${tableLayout.compact ? "min-h-[2rem]" : "min-h-[2rem]"} ${tableLayout.siteLabelWidth} items-center justify-center break-words text-center ${tableLayout.compact ? "leading-[1.15]" : "whitespace-normal leading-tight"}`}
                         >
-                          {s.name}
+                          {getSiteDisplayName(s.name || s.slug)}
                         </div>
                       </th>
                     ))}

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { getRankHistoryForGraph } from "@/lib/ranking"
+import { getRankHistoryAverageForGraph, getRankHistoryForGraph } from "@/lib/ranking"
+
+const KEYWORD_AVERAGE_ALL = "__average__"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -12,6 +14,9 @@ export async function GET(request: Request) {
       { status: 400 }
     )
   }
-  const rows = await getRankHistoryForGraph(keyword, fromDate, toDate)
+  const rows =
+    keyword === KEYWORD_AVERAGE_ALL
+      ? await getRankHistoryAverageForGraph(fromDate, toDate)
+      : await getRankHistoryForGraph(keyword, fromDate, toDate)
   return NextResponse.json(rows)
 }

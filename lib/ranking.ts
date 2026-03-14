@@ -398,6 +398,26 @@ export async function getRankHistoryForGraph(
   return rows
 }
 
+/** ดึงค่าเฉลี่ยอันดับ (เฉพาะที่พบ, rank < 999) ต่อ recorded_date, site_slug — ตรงกับแถวเฉลี่ยใน heatmap */
+export async function getRankHistoryAverageForGraph(
+  fromRecordedAt: string,
+  toRecordedAt: string
+): Promise<{ recorded_date: string; site_slug: string; rank: number }[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT recorded_date, site_slug, AVG(rank) as rank FROM rank_history
+       WHERE recorded_date >= ? AND recorded_date <= ? AND rank < ?
+       GROUP BY recorded_date, site_slug
+       ORDER BY recorded_date, site_slug`
+    )
+    .all(fromRecordedAt, toRecordedAt, NOT_FOUND_RANK)) as {
+    recorded_date: string
+    site_slug: string
+    rank: number
+  }[]
+  return rows.map((r) => ({ ...r, rank: Number(r.rank) }))
+}
+
 /** ลบ rank_history ที่เก่ากว่า retentionYears ปี — ใช้เพื่อประหยัดพื้นที่บน Cloud */
 export async function cleanupOldRankHistory(retentionYears = 1): Promise<number> {
   const sql = isPostgres

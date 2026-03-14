@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { PageLayout } from "../../components/PageLayout"
 import { Card, CardBody, CardHeader } from "../../components/ui/Card"
 import type { DuplicateTitle, ContentDuplicate } from "@/lib/duplicate"
+import { getSiteDisplayName, getSiteColor } from "@/lib/siteColors"
 
 type DuplicatesData = {
   titleDuplicates: DuplicateTitle[]
@@ -75,10 +76,10 @@ export default function DuplicatesPage() {
         </select>
       </div>
 
-      <div className="space-y-8">
-        <Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="flex flex-col">
           <CardHeader title="หัวข้อซ้ำ (Title Duplicates)" subtitle="ชื่อบทความเดียวกันมากกว่า 1 เว็บ" />
-          <CardBody>
+          <CardBody className="flex-1 min-h-0 overflow-auto">
             {titleDuplicates.length === 0 ? (
               <p className="text-zinc-500 dark:text-zinc-400">ไม่พบหัวข้อซ้ำ</p>
             ) : (
@@ -89,7 +90,14 @@ export default function DuplicatesPage() {
                     <p className="mt-1 text-sm text-zinc-500">จำนวน {item.count} เว็บ</p>
                     <ul className="mt-2 list-inside list-disc text-sm text-zinc-600 dark:text-zinc-300">
                       {item.sources.map((src, j) => (
-                        <li key={j}>{src}</li>
+                        <li key={j}>
+                          <span
+                            className="inline-block rounded px-1.5 py-0.5 font-medium"
+                            style={{ backgroundColor: `${getSiteColor(src)}22`, color: getSiteColor(src) }}
+                          >
+                            {getSiteDisplayName(src)}
+                          </span>
+                        </li>
                       ))}
                     </ul>
                   </li>
@@ -99,9 +107,9 @@ export default function DuplicatesPage() {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader title="เนื้อหาคล้ายกัน (Content Similarity ≥ 80%)" subtitle="จากโพสต์ล่าสุด 500 รายการ" />
-          <CardBody>
+          <CardBody className="flex-1 min-h-0 overflow-auto">
             {contentDuplicates.length === 0 ? (
               <p className="text-zinc-500 dark:text-zinc-400">ไม่พบคู่บทความที่เนื้อหาคล้ายกัน</p>
             ) : (
@@ -109,8 +117,24 @@ export default function DuplicatesPage() {
                 {contentDuplicates.map((item, i) => (
                   <li key={i} className="rounded-lg border border-zinc-100 p-4 dark:border-zinc-700">
                     <p className="text-sm text-zinc-500">ความคล้าย {(item.score * 100).toFixed(0)}%</p>
-                    <p className="mt-1 text-zinc-900 dark:text-zinc-100"><strong>{item.siteA}</strong>: {item.titleA}</p>
-                    <p className="mt-1 text-zinc-900 dark:text-zinc-100"><strong>{item.siteB}</strong>: {item.titleB}</p>
+                    <p className="mt-1 text-zinc-900 dark:text-zinc-100">
+                      <span
+                        className="inline-block rounded px-1.5 py-0.5 font-medium"
+                        style={{ backgroundColor: `${getSiteColor(item.siteA)}22`, color: getSiteColor(item.siteA) }}
+                      >
+                        {getSiteDisplayName(item.siteA)}
+                      </span>
+                      : {item.titleA}
+                    </p>
+                    <p className="mt-1 text-zinc-900 dark:text-zinc-100">
+                      <span
+                        className="inline-block rounded px-1.5 py-0.5 font-medium"
+                        style={{ backgroundColor: `${getSiteColor(item.siteB)}22`, color: getSiteColor(item.siteB) }}
+                      >
+                        {getSiteDisplayName(item.siteB)}
+                      </span>
+                      : {item.titleB}
+                    </p>
                   </li>
                 ))}
               </ul>

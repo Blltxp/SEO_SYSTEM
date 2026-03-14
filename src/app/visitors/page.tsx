@@ -5,6 +5,7 @@ import { toPng } from "html-to-image"
 import { PageLayout } from "../../components/PageLayout"
 import { Card, CardBody, CardHeader } from "../../components/ui/Card"
 import { Button } from "../../components/ui/Button"
+import { getSiteDisplayName, getSiteColor } from "@/lib/siteColors"
 
 type VisitorStatsRow = {
   site_slug: string
@@ -218,11 +219,11 @@ export default function VisitorsPage() {
   }
 
   return (
-    <PageLayout title="จำนวนคนเข้าชมเว็บไซต์" description="สถานะเว็บไซต์ประจำวัน" maxWidth="full">
+    <PageLayout title="จำนวนคนเข้าชมเว็บไซต์" description="เช็คสถานะเว็บไซต์ประจำวัน" maxWidth="full">
       <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
       <Card>
         <CardHeader
-          title="สถานะเว็บไซต์ประจำวันที่"
+          title="ประจำวันที่"
           subtitle={`${formatDisplayDate(displayDate)}`}
           action={
             <div className="flex flex-wrap items-center gap-2" data-export-hide="true">
@@ -330,7 +331,15 @@ export default function VisitorsPage() {
                   return (
                     <tr key={row.site_slug} className="border-b border-zinc-800/80 hover:bg-zinc-900/50">
                       <td className="px-4 py-2.5 font-medium text-zinc-200">
-                        {row.site_name}
+                        <span
+                          className="inline-block rounded px-1.5 py-0.5"
+                          style={{
+                            backgroundColor: `${getSiteColor(row.site_slug)}22`,
+                            color: getSiteColor(row.site_slug)
+                          }}
+                        >
+                          {getSiteDisplayName(row.site_name || row.site_slug)}
+                        </span>
                       </td>
                       <td className="border-l border-zinc-700/60 px-2 py-2.5 text-center text-zinc-300">
                         {editingManual ? (

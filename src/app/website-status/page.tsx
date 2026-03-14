@@ -5,6 +5,7 @@ import { toPng } from "html-to-image"
 import { PageLayout } from "../../components/PageLayout"
 import { Card, CardBody, CardHeader } from "../../components/ui/Card"
 import { Button } from "../../components/ui/Button"
+import { getSiteDisplayName, getSiteColor } from "@/lib/siteColors"
 
 export type WebsiteStatusRow = {
   slug: string
@@ -235,8 +236,20 @@ export default function WebsiteStatusPage() {
                           >
                             {row.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                           </a>
-                          {row.name && (
-                            <span className="ml-2 text-zinc-500">({row.name})</span>
+                          {(row.name || row.slug) && (
+                            <span className="ml-2 text-zinc-500">
+                              (
+                              <span
+                                className="inline-block rounded px-1.5 py-0.5 font-medium"
+                                style={{
+                                  backgroundColor: `${getSiteColor(row.slug)}22`,
+                                  color: getSiteColor(row.slug)
+                                }}
+                              >
+                                {getSiteDisplayName(row.name || row.slug)}
+                              </span>
+                              )
+                            </span>
                           )}
                         </td>
                         <td className="px-5 py-3">
@@ -278,7 +291,15 @@ export default function WebsiteStatusPage() {
                     }
                     return (
                       <li key={row.slug} className="flex flex-wrap gap-x-2 gap-y-1 text-zinc-300">
-                        <span className="font-medium text-amber-200/90">{row.name || row.slug}</span>
+                        <span
+                          className="inline-block rounded px-1.5 py-0.5 font-medium"
+                          style={{
+                            backgroundColor: `${getSiteColor(row.slug)}22`,
+                            color: getSiteColor(row.slug)
+                          }}
+                        >
+                          {getSiteDisplayName(row.name || row.slug)}
+                        </span>
                         <span className="text-zinc-500">—</span>
                         <span>{parts.join(" · ")}</span>
                       </li>
