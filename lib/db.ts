@@ -101,6 +101,18 @@ CREATE TABLE IF NOT EXISTS app_locks (
   locked_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS site_visitor_stats (
+  id SERIAL PRIMARY KEY,
+  recorded_date TEXT NOT NULL,
+  site_slug TEXT NOT NULL,
+  total_visitors INTEGER,
+  morning_round INTEGER,
+  evening_round INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(recorded_date, site_slug)
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_wp_post_id
 ON posts(source, wp_post_id)
 WHERE wp_post_id IS NOT NULL;
@@ -299,6 +311,18 @@ CREATE TABLE IF NOT EXISTS rank_history (
 CREATE TABLE IF NOT EXISTS app_locks (
   lock_key TEXT PRIMARY KEY,
   locked_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS site_visitor_stats (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  recorded_date TEXT NOT NULL,
+  site_slug TEXT NOT NULL,
+  total_visitors INTEGER,
+  morning_round INTEGER,
+  evening_round INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(recorded_date, site_slug)
 );
 `)
 

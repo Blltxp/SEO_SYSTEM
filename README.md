@@ -1,6 +1,6 @@
 # SEO System
 
-ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), ตรวจบทความซ้ำ และแนะนำหัวข้อบทความ
+ระบบจัดการ SEO สำหรับ 6 เว็บไซต์: ติดตามอันดับ Google (19 keyword), จำนวนคนเข้าชมเว็บ, ตรวจบทความซ้ำ และแนะนำหัวข้อบทความ
 
 ---
 
@@ -13,7 +13,14 @@
 - **เปรียบเทียบ** — ดีขึ้น/แย่ลง/คงเดิม เทียบกับรอบก่อน
 - **ปุ่มเช็คอันดับ** — กดเมื่อต้องการเช็คอันดับ 19 keyword × 6 เว็บ
 
-### 2. Article Intelligence System
+### 2. จำนวนคนเข้าชม (Visitor Stats)
+- **ตารางสถานะเว็บไซต์** — ยอดรวม, รอบเช้า, รอบเย็น, ทั้งหมด (แบบ B: รอบเย็น = ยอดวันนี้ − รอบเช้า)
+- **บอทดึงสถิติอัตโนมัติ** — ใช้ Puppeteer เข้า 6 เว็บ ดึงตัวเลขจากปลั๊กอิน Post Views Counter (รองรับทั้งข้อความไทยและอังกฤษ)
+- **ปุ่มรอบเช้า / รอบเย็น** — กดแล้วรันบอทแล้วบันทึก (รอบเย็นคำนวณเป็นยอดเพิ่มหลังตัดรอบเช้า)
+- **กรอกมือ** — สำหรับเว็บที่ widget โหลดไม่เสร็จเมื่อไม่ล็อกอิน (เช่น นาซ่า, แม่บ้านดีดีเซอร์วิส)
+- **บันทึกเป็นรูป** — export ตารางเป็น PNG
+
+### 3. Article Intelligence System
 - **ดึงบทความ** — จาก WordPress API / RSS (6 เว็บ)
 - **ตรวจบทความซ้ำ** — หัวข้อซ้ำ, เนื้อหาคล้าย (cosine similarity)
 - **หัวข้อบทความแนะนำ** — แนะนำเมื่อเว็บยังไม่อยู่หน้า 1 (ใช้ข้อมูล rank จริง)
@@ -44,14 +51,17 @@ seo-system/
 │   ├── titleSuggestions.ts # Title suggestions
 │   ├── duplicate.ts       # บทความซ้ำ
 │   ├── wordpress.ts       # WordPress API / RSS fetch
+│   ├── visitorStats.ts    # ดึงสถิติ PVC จาก 6 เว็บ (Puppeteer)
+│   ├── visitorStatsDb.ts  # site_visitor_stats CRUD
 │   └── ...
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx       # Redirect → /ranking/graph
 │   │   ├── ranking/       # ตารางอันดับ + กราฟ
+│   │   ├── visitors/      # จำนวนคนเข้าชมเว็บ (ตาราง + รอบเช้า/เย็น)
 │   │   ├── article-titles/# หัวข้อบทความแนะนำ
 │   │   ├── duplicates/    # รายงานบทความซ้ำ
-│   │   └── api/           # API routes
+│   │   └── api/           # API routes (ranking, visitors, …)
 │   └── components/        # Sidebar, PageLayout, Card, Button
 ├── scripts/
 │   ├── scan.ts            # สแกนบทความจาก 6 เว็บ
@@ -140,20 +150,23 @@ flowchart TB
         Google[Google Search]
     end
 
-    subgraph Manual["รันมือ / Scripts"]
+    subgraph Manual["รันมือ / Scripts / ปุ่มในเว็บ"]
         Scan[npm run scan]
         Rank[ปุ่มเช็คอันดับ / npm run check-ranking]
+        VisitorCheck[ปุ่มรอบเช้า/เย็น จำนวนคนเข้าชม]
         Cleanup[npm run cleanup-rank-history]
     end
 
     subgraph Data["ฐานข้อมูล"]
         Posts[(posts)]
         RankHistory[(rank_history)]
+        VisitorStats[(site_visitor_stats)]
     end
 
     subgraph Dashboard["Dashboard"]
         R1[ranking]
         R2[ranking graph]
+        V[visitors]
         A[article-titles]
         D[duplicates]
         M[ranking manage]
@@ -166,6 +179,8 @@ flowchart TB
     RankHistory --> R1
     RankHistory --> R2
     RankHistory --> A
+    VisitorCheck --> VisitorStats
+    VisitorStats --> V
 ```
 
 ### Flow Charts & ER Diagram
@@ -183,6 +198,7 @@ erDiagram
     keywords ||--o{ site_keywords : "assigned"
     sites ||--o{ posts : "source"
     sites ||--o{ rank_history : "site_slug"
+    sites ||--o{ site_visitor_stats : "site_slug"
     keywords ||--o{ rank_history : "keyword"
 
     sites { int id PK text slug UK text name int sort_order }
@@ -190,6 +206,7 @@ erDiagram
     site_keywords { int site_id PK,FK int keyword_id PK,FK }
     posts { int id PK text title text content text source timestamp published_at }
     rank_history { int id PK text recorded_date text site_slug text keyword int rank text url }
+    site_visitor_stats { int id PK text recorded_date text site_slug int total_visitors int morning_round int evening_round }
 ```
 
 ---
@@ -202,6 +219,7 @@ erDiagram
 - **sites** — 6 เว็บไซต์
 - **site_keywords** — ผูก keyword กับ site
 - **rank_history** — บันทึกอันดับ (recorded_date, site_slug, keyword, rank, url)
+- **site_visitor_stats** — สถิติผู้เข้าชม (recorded_date, site_slug, total_visitors, morning_round, evening_round)
 
 ### Sites (6 เว็บ)
 แม่บ้านดีดี · แม่บ้านสยาม · นาซ่าลาดพร้าว · แม่บ้านอินเตอร์ · แม่บ้านดีดีเซอร์วิส · แม่บ้านสุขสวัสดิ์

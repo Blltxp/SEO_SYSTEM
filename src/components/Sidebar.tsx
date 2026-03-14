@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FileText, Copy, Table2, Trash2 } from "lucide-react"
+import { LayoutDashboard, FileText, Copy, Table2, Trash2, Users } from "lucide-react"
 
 const NAV_ITEMS = [
   { href: "/ranking/graph", label: "แดชบอร์ด", icon: LayoutDashboard },
   { href: "/ranking", label: "ตาราง Ranking", icon: Table2 },
+  { href: "/visitors", label: "จำนวนคนเข้าชม", icon: Users },
   { href: "/article-titles", label: "หัวข้อบทความ", icon: FileText },
   { href: "/duplicates", label: "รายงานซ้ำ", icon: Copy },
   { href: "/ranking/manage", label: "จัดการข้อมูล Ranking", icon: Trash2 },
