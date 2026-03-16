@@ -155,6 +155,20 @@ ON rank_history(keyword, recorded_date);
     if (hasSyncedAt.rows.length === 0) {
       await client.query("ALTER TABLE posts ADD COLUMN synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     }
+    const hasFullLoadTime = await client.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'website_status' AND column_name = 'full_load_time_ms'
+    `)
+    if (hasFullLoadTime.rows.length === 0) {
+      await client.query("ALTER TABLE website_status ADD COLUMN full_load_time_ms INTEGER")
+    }
+    const hasFullLoadStatus = await client.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'website_status' AND column_name = 'full_load_status'
+    `)
+    if (hasFullLoadStatus.rows.length === 0) {
+      await client.query("ALTER TABLE website_status ADD COLUMN full_load_status TEXT")
+    }
   } finally {
     client.release()
   }
@@ -370,6 +384,8 @@ CREATE TABLE IF NOT EXISTS website_status (
   ensureColumn("posts", "wp_post_id", "INTEGER")
   ensureColumn("posts", "published_at", "DATETIME")
   ensureColumn("posts", "synced_at", "DATETIME")
+  ensureColumn("website_status", "full_load_time_ms", "INTEGER")
+  ensureColumn("website_status", "full_load_status", "TEXT")
 
   sqlite.exec(`
 CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_wp_post_id

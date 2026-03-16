@@ -14,6 +14,7 @@
     "update-keywords": "tsx scripts/updateKeywords.ts",
     "check-ranking": "tsx scripts/checkRanking.ts",
     "check-ranking-local": "tsx scripts/checkRankingLocal.ts",
+    "check-website-status": "tsx scripts/checkWebsiteStatusLocal.ts",
     "migrate-sqlite-to-pg": "tsx scripts/migrateSqliteToPostgres.ts",
     "migrate-to-neon": "tsx scripts/migrateToNeon.ts",
     "cleanup-rank-history": "tsx scripts/cleanupRankHistory.ts"

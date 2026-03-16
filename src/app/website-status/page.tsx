@@ -13,6 +13,8 @@ export type WebsiteStatusRow = {
   url: string
   loadTimeMs: number | null
   loadStatus: string
+  fullLoadTimeMs: number | null
+  fullLoadStatus: string
   lineOk: boolean
   phoneOk: boolean
   lineReason?: string
@@ -43,16 +45,15 @@ function formatCheckedAt(iso: string): string {
   }
 }
 
-function loadTimeDisplay(row: WebsiteStatusRow): { text: string; isOk: boolean } {
-  if (row.loadStatus === "ล้มเหลว") {
-    return { text: "ล้มเหลว", isOk: false }
-  }
-  if (row.loadStatus === "ช้า") {
-    const sec = row.loadTimeMs != null ? (row.loadTimeMs / 1000).toFixed(1) : "?"
-    return { text: `ช้า ${sec} วิ`, isOk: false }
-  }
-  const sec = row.loadTimeMs != null ? Math.round(row.loadTimeMs / 1000) : 0
-  return { text: `ปกติ ${sec} วิ`, isOk: true }
+/** เปิดจาก localhost หรือไม่ (ปุ่มเช็คจะรันบนเครื่องนี้) */
+function useIsLocalhost(): boolean {
+  const [is, setIs] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const host = window.location.hostname
+    setIs(host === "localhost" || host === "127.0.0.1")
+  }, [])
+  return is
 }
 
 export default function WebsiteStatusPage() {
@@ -65,6 +66,56 @@ export default function WebsiteStatusPage() {
   const [exportingImage, setExportingImage] = useState(false)
   const [imageExportLayout, setImageExportLayout] = useState(false)
   const exportRef = useRef<HTMLDivElement | null>(null)
+  const localCommandRef = useRef<HTMLDivElement | null>(null)
+  const [copiedCommand, setCopiedCommand] = useState(false)
+  const [savingSpeed, setSavingSpeed] = useState(false)
+  /** ค่า fullLoadTimeMs ตอนโหลด/หลังบันทึก ใช้เช็คว่ามีการแก้ไขหรือไม่ */
+  const [initialSpeeds, setInitialSpeeds] = useState<Record<string, number | null>>({})
+  const isLocalhost = useIsLocalhost()
+
+  const hasSpeedChanges =
+    results.length > 0 &&
+    results.some(
+      (r) => (initialSpeeds[r.slug] ?? null) !== (r.fullLoadTimeMs ?? null)
+    )
+
+  const handleSpeedChange = (slug: string, value: string) => {
+    if (value === "") {
+      setResults((prev) => prev.map((r) => (r.slug === slug ? { ...r, fullLoadTimeMs: null } : r)))
+      return
+    }
+    const num = parseFloat(value)
+    if (Number.isNaN(num) || num < 0) return
+    setResults((prev) =>
+      prev.map((r) => (r.slug === slug ? { ...r, fullLoadTimeMs: Math.round(num * 1000) } : r))
+    )
+  }
+
+  const handleSaveSpeed = async () => {
+    setError(null)
+    setSavingSpeed(true)
+    try {
+      const res = await fetch("/api/website-status/speed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: results.map((r) => ({
+            slug: r.slug,
+            speedSec: r.fullLoadTimeMs != null ? r.fullLoadTimeMs / 1000 : null
+          }))
+        })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || "บันทึกไม่สำเร็จ")
+      setInitialSpeeds(
+        Object.fromEntries(results.map((r) => [r.slug, r.fullLoadTimeMs ?? null]))
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "บันทึกความเร็วไม่สำเร็จ")
+    } finally {
+      setSavingSpeed(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -73,7 +124,11 @@ export default function WebsiteStatusPage() {
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && data.results?.length) {
-          setResults(data.results)
+          const list = data.results as WebsiteStatusRow[]
+          setResults(list)
+          setInitialSpeeds(
+            Object.fromEntries(list.map((r) => [r.slug, r.fullLoadTimeMs ?? null]))
+          )
           setLastCheckedAt(data.checkedAt ?? null)
         }
       })
@@ -87,6 +142,19 @@ export default function WebsiteStatusPage() {
   }, [])
 
   const handleCheck = async () => {
+    if (!isLocalhost) {
+      const origin = typeof window !== "undefined" ? window.location.origin : ""
+      const cmd = `SITE_URL=${origin} npm run check-website-status`
+      try {
+        await navigator.clipboard.writeText(cmd)
+        setCopiedCommand(true)
+        setTimeout(() => setCopiedCommand(false), 3000)
+        localCommandRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+      } catch {
+        setError("คัดลอกคำสั่งไม่สำเร็จ")
+      }
+      return
+    }
     setError(null)
     setChecking(true)
     try {
@@ -95,7 +163,11 @@ export default function WebsiteStatusPage() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "เช็คไม่สำเร็จ")
       }
-      setResults(data.results ?? [])
+      const list = data.results ?? []
+      setResults(list)
+      setInitialSpeeds(
+        Object.fromEntries(list.map((r: WebsiteStatusRow) => [r.slug, r.fullLoadTimeMs ?? null]))
+      )
       setLastCheckedAt(data.checkedAt ?? null)
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด")
@@ -109,12 +181,10 @@ export default function WebsiteStatusPage() {
     setExportingImage(true)
     setImageExportLayout(true)
     setError(null)
-    const hiddenElements = Array.from(
-      exportRef.current.querySelectorAll<HTMLElement>('[data-export-hide="true"]')
-    )
-    const overflowEls = Array.from(
-      exportRef.current.querySelectorAll<HTMLElement>(".overflow-x-auto")
-    )
+    const cardEl = exportRef.current
+    const hiddenElements = Array.from(cardEl.querySelectorAll<HTMLElement>('[data-export-hide="true"]'))
+    const showElements = Array.from(cardEl.querySelectorAll<HTMLElement>('[data-export-show="true"]'))
+    const overflowEls = Array.from(cardEl.querySelectorAll<HTMLElement>(".overflow-x-auto"))
 
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -124,15 +194,22 @@ export default function WebsiteStatusPage() {
         el.dataset.previousDisplay = el.style.display
         el.style.display = "none"
       })
+      showElements.forEach((el) => {
+        el.dataset.previousDisplay = el.style.display
+        el.style.display = "inline"
+      })
       overflowEls.forEach((el) => {
         el.style.overflow = "visible"
         const table = el.querySelector<HTMLElement>("table")
-        if (table) table.style.minWidth = "1100px"
+        if (table) table.style.minWidth = "1000px"
       })
+      cardEl.style.overflow = "visible"
+      cardEl.style.width = "fit-content"
+      cardEl.style.minWidth = "1050px"
 
       await new Promise<void>((r) => setTimeout(r, 80))
 
-      const dataUrl = await toPng(exportRef.current, {
+      const dataUrl = await toPng(cardEl, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#0b0b0b"
@@ -145,12 +222,19 @@ export default function WebsiteStatusPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกเป็นรูปไม่สำเร็จ")
     } finally {
+      cardEl.style.width = ""
+      cardEl.style.minWidth = ""
+      cardEl.style.overflow = ""
       overflowEls.forEach((el) => {
         el.style.overflow = ""
         const table = el.querySelector<HTMLElement>("table")
         if (table) table.style.minWidth = ""
       })
       hiddenElements.forEach((el) => {
+        el.style.display = el.dataset.previousDisplay ?? ""
+        delete el.dataset.previousDisplay
+      })
+      showElements.forEach((el) => {
         el.style.display = el.dataset.previousDisplay ?? ""
         delete el.dataset.previousDisplay
       })
@@ -167,25 +251,43 @@ export default function WebsiteStatusPage() {
       description="ความเร็วโหลดหน้าเว็บ และสถานะปุ่มแอดไลน์ / ปุ่มโทร"
       maxWidth="full"
     >
-      <div ref={exportRef} className={imageExportLayout ? "mx-auto min-w-[1200px] w-full max-w-6xl" : ""}>
-      <Card>
+      <div className={imageExportLayout ? "mx-auto w-fit min-w-[1050px]" : ""}>
+      <Card ref={exportRef}>
         <CardHeader
           title={`สถานะเว็บไซต์ ${displayDate}`}
           subtitle={lastCheckedAt ? `เช็คล่าสุดเมื่อ ${displayDate}` : "กดปุ่มเช็คใหม่เพื่อตรวจสอบ"}
           action={
             <div className="flex flex-wrap items-center gap-2" data-export-hide="true">
-              <Button onClick={handleCheck} loading={checking} disabled={checking} className="cursor-pointer">
-                เช็คสถานะปุ่มและความเร็วเว็บไซต์
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleExportImage}
-                className="cursor-pointer"
-                loading={exportingImage}
-                disabled={checking || results.length === 0}
-              >
-                บันทึกรูป
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                เช็คสถานะปุ่มแอดไลน์และปุ่มโทร
+                <Button
+                  onClick={handleCheck}
+                  loading={checking}
+                  disabled={checking}
+                  className="cursor-pointer"
+                  title={isLocalhost ? "รันบนเครื่องนี้" : "คัดลอกคำสั่งไปรันบนเครื่องตัวเอง"}
+                >
+                  {isLocalhost ? "เช็ค" : "เช็ค"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleSaveSpeed}
+                  className="cursor-pointer"
+                  loading={savingSpeed}
+                  disabled={!hasSpeedChanges || savingSpeed || checking || results.length === 0}
+                >
+                  บันทึกความเร็ว
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleExportImage}
+                  className="cursor-pointer"
+                  loading={exportingImage}
+                  disabled={checking || results.length === 0}
+                >
+                  บันทึกรูป
+                </Button>
+              </div>
             </div>
           }
         />
@@ -193,6 +295,21 @@ export default function WebsiteStatusPage() {
           {error && (
             <div className="mx-5 mb-4 rounded-lg bg-red-900/20 p-4 text-red-300" data-export-hide="true">
               {error}
+            </div>
+          )}
+          {!isLocalhost && (
+            <div ref={localCommandRef} className="mx-5 mb-4 rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-200/90" data-export-hide="true">
+              <p className="mb-2 font-medium">เช็คจะรันจากเครื่องคุณ — กดปุ่มด้านบนเพื่อคัดลอกคำสั่ง</p>
+              <p className="mb-2 text-zinc-400">
+                จากโฟลเดอร์โปรเจกต์ รันคำสั่งด้านล่างในเทอร์มินัล แล้วรีเฟรชหน้านี้เพื่อดูผล
+              </p>
+              {copiedCommand && (
+                <p className="mb-2 text-emerald-400 text-xs">คัดลอกคำสั่งแล้ว — รันในเทอร์มินัลแล้วรีเฟรชหน้านี้</p>
+              )}
+              <code className="block overflow-x-auto rounded bg-zinc-900/80 px-3 py-2 text-xs">
+                SITE_URL={typeof window !== "undefined" ? window.location.origin : "https://your-app.vercel.app"}{" "}
+                npm run check-website-status
+              </code>
             </div>
           )}
           {loadingLatest && results.length === 0 && (
@@ -203,7 +320,7 @@ export default function WebsiteStatusPage() {
           )}
           {!loadingLatest && results.length === 0 && !checking && (
             <div className="px-5 py-8 text-center text-zinc-500">
-              ยังไม่มีข้อมูล — กดปุ่ม &quot;เช็คใหม่&quot; เพื่อตรวจสอบความเร็วและปุ่มแอดไลน์/โทรของทุกเว็บ
+              ยังไม่มีข้อมูล — กดปุ่มเช็คเพื่อตรวจสอบปุ่มแอดไลน์/โทร แล้วกรอกความเร็วได้
             </div>
           )}
           {checking && (
@@ -214,63 +331,83 @@ export default function WebsiteStatusPage() {
           )}
           {results.length > 0 && !checking && (
             <div className="overflow-x-auto">
-              <table className={`w-full text-left text-sm ${imageExportLayout ? "min-w-[1100px]" : "min-w-[640px]"}`}>
+              <table className={`w-full text-left text-sm ${imageExportLayout ? "min-w-[1000px]" : "min-w-[640px]"}`}>
                 <thead>
                   <tr className="border-b border-zinc-700/80 bg-zinc-900/50">
                     <th className="px-5 py-3 font-medium text-zinc-300">เว็บไซต์</th>
-                    <th className="px-5 py-3 font-medium text-zinc-300">ความเร็วในการโหลดหน้าเว็บ</th>
+                    <th className="px-5 py-3 font-medium text-zinc-300">ความเร็ว (วิ)</th>
                     <th className="px-5 py-3 font-medium text-zinc-300">สถานะปุ่ม แอดไลน์</th>
                     <th className="px-5 py-3 font-medium text-zinc-300">สถานะปุ่ม โทร</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((row) => {
-                    const load = loadTimeDisplay(row)
-                    return (
-                      <tr key={row.slug} className="border-b border-zinc-800/80 hover:bg-zinc-800/30">
-                        <td className="px-5 py-3">
-                          <a
-                            href={row.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-amber-400 hover:underline"
-                          >
-                            {row.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                          </a>
-                          {(row.name || row.slug) && (
-                            <span className="ml-2 text-zinc-500">
-                              (
-                              <span
-                                className="inline-block rounded px-1.5 py-0.5 font-medium"
-                                style={{
-                                  backgroundColor: `${getSiteColor(row.slug)}22`,
-                                  color: getSiteColor(row.slug)
-                                }}
-                              >
-                                {getSiteDisplayName(row.name || row.slug)}
-                              </span>
-                              )
+                  {results.map((row) => (
+                    <tr key={row.slug} className="border-b border-zinc-800/80 hover:bg-zinc-800/30">
+                      <td className="px-5 py-3">
+                        <a
+                          href={row.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-amber-400 hover:underline"
+                        >
+                          {row.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                        </a>
+                        {(row.name || row.slug) && (
+                          <span className="ml-2 text-zinc-500">
+                            (
+                            <span
+                              className="inline-block rounded px-1.5 py-0.5 font-medium"
+                              style={{
+                                backgroundColor: `${getSiteColor(row.slug)}22`,
+                                color: getSiteColor(row.slug)
+                              }}
+                            >
+                              {getSiteDisplayName(row.name || row.slug)}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className={load.isOk ? "text-emerald-400" : "text-amber-500"}>
-                            ความเร็ว = {load.text}
+                            )
                           </span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className={row.lineOk ? "text-emerald-400" : "text-red-400"}>
-                            กดแอดไลน์ = {row.lineOk ? "ปกติ" : "ผิดปกติ"}
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          placeholder="วิ"
+                          className="w-20 rounded border border-zinc-600 bg-zinc-800/80 px-2 py-1 text-sm text-zinc-200 placeholder:text-zinc-500"
+                          data-export-hide="true"
+                          value={row.fullLoadTimeMs != null ? row.fullLoadTimeMs / 1000 : ""}
+                          onChange={(e) => handleSpeedChange(row.slug, e.target.value)}
+                        />
+                        {row.fullLoadTimeMs != null && (
+                          <span
+                            className={`ml-2 ${row.fullLoadTimeMs >= 1500 ? "text-amber-500" : "text-emerald-400"}`}
+                            data-export-hide="true"
+                          >
+                            {row.fullLoadTimeMs >= 1500 ? "ช้า" : "ปกติ"}
                           </span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className={row.phoneOk ? "text-emerald-400" : "text-red-400"}>
-                            กดโทร = {row.phoneOk ? "ปกติ" : "ผิดปกติ"}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                        )}
+                        <span
+                          className={`hidden ${row.fullLoadTimeMs != null ? (row.fullLoadTimeMs >= 1500 ? "text-amber-500" : "text-emerald-400") : "text-zinc-400"}`}
+                          data-export-show="true"
+                        >
+                          {row.fullLoadTimeMs != null
+                            ? `${(row.fullLoadTimeMs / 1000).toFixed(1)} วิ ${row.fullLoadTimeMs >= 1500 ? "ช้า" : "ปกติ"}`
+                            : "—"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={row.lineOk ? "text-emerald-400" : "text-red-400"}>
+                          กดแอดไลน์ = {row.lineOk ? "ปกติ" : "ผิดปกติ"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={row.phoneOk ? "text-emerald-400" : "text-red-400"}>
+                          กดโทร = {row.phoneOk ? "ปกติ" : "ผิดปกติ"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
