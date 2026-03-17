@@ -32,7 +32,7 @@ export default function VisitorsPage() {
   const [exportingImage, setExportingImage] = useState(false)
   const [imageExportLayout, setImageExportLayout] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const exportRef = useRef<HTMLDivElement | null>(null)
+  const tableExportRef = useRef<HTMLDivElement | null>(null)
 
   const fetchData = useCallback(async () => {
     const today = new Date().toISOString().slice(0, 10)
@@ -132,17 +132,13 @@ export default function VisitorsPage() {
   }
 
   const handleExportImage = async () => {
-    if (!exportRef.current) return
+    if (!tableExportRef.current) return
     setExportingImage(true)
     setImageExportLayout(true)
     setError(null)
-    const hiddenElements = Array.from(
-      exportRef.current.querySelectorAll<HTMLElement>('[data-export-hide="true"]')
-    )
-
-    const overflowEls = Array.from(
-      exportRef.current.querySelectorAll<HTMLElement>(".overflow-x-auto")
-    )
+    const tableWrap = tableExportRef.current
+    const hiddenElements = Array.from(tableWrap.querySelectorAll<HTMLElement>('[data-export-hide="true"]'))
+    const table = tableWrap.querySelector<HTMLElement>("table")
 
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -152,16 +148,19 @@ export default function VisitorsPage() {
         el.dataset.previousDisplay = el.style.display
         el.style.display = "none"
       })
-
-      overflowEls.forEach((el) => {
-        el.style.overflow = "visible"
-        const table = el.querySelector<HTMLElement>("table")
-        if (table) table.style.minWidth = "unset"
-      })
+      tableWrap.style.overflow = "visible"
+      tableWrap.style.display = "inline-block"
+      tableWrap.style.width = "fit-content"
+      tableWrap.style.minWidth = "0"
+      if (table) {
+        table.style.width = "800px"
+        table.style.minWidth = "800px"
+        table.style.maxWidth = "800px"
+      }
 
       await new Promise<void>((r) => setTimeout(r, 80))
 
-      const dataUrl = await toPng(exportRef.current, {
+      const dataUrl = await toPng(tableWrap, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#0b0b0b"
@@ -173,11 +172,15 @@ export default function VisitorsPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกเป็นรูปไม่สำเร็จ")
     } finally {
-      overflowEls.forEach((el) => {
-        el.style.overflow = ""
-        const table = el.querySelector<HTMLElement>("table")
-        if (table) table.style.minWidth = ""
-      })
+      tableWrap.style.overflow = ""
+      tableWrap.style.display = ""
+      tableWrap.style.width = ""
+      tableWrap.style.minWidth = ""
+      if (table) {
+        table.style.width = ""
+        table.style.minWidth = ""
+        table.style.maxWidth = ""
+      }
       hiddenElements.forEach((el) => {
         el.style.display = el.dataset.previousDisplay ?? ""
         delete el.dataset.previousDisplay
@@ -224,7 +227,6 @@ export default function VisitorsPage() {
 
   return (
     <PageLayout title="จำนวนคนเข้าชมเว็บไซต์" description="เช็คสถานะเว็บไซต์ประจำวัน" maxWidth="full">
-      <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
       <Card>
         <CardHeader
           title="ประจำวันที่"
@@ -308,8 +310,8 @@ export default function VisitorsPage() {
               กรอกยอดสำหรับเว็บที่บอทดึงไม่ได้ (เช่น นาซ่า แม่บ้านดีดีเซอร์วิส) แล้วกด บันทึก
             </div>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] table-fixed border-collapse text-left text-sm">
+          <div ref={tableExportRef} className="overflow-x-auto">
+            <table className="w-full min-w-[600px] table-fixed border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-700">
                   <th className="px-4 py-3 font-semibold text-amber-100">เว็บไซต์</th>
@@ -402,7 +404,6 @@ export default function VisitorsPage() {
           </div>
         </CardBody>
       </Card>
-      </div>
     </PageLayout>
   )
 }
