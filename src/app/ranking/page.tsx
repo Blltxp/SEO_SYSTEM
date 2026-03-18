@@ -547,12 +547,12 @@ export default function RankingPage() {
         label: "โหมดรายงานผู้บริหาร",
         compact: true,
         wrapperClass: "overflow-x-auto",
-        tableClass: "mx-auto table-fixed text-left text-xs leading-snug sm:text-sm",
-        keywordWidth: "w-[152px]",
+        tableClass: "mx-auto min-w-[1200px] table-fixed text-left text-xs leading-snug sm:text-sm",
+        keywordWidth: "w-[170px]",
         keywordCell: "px-2 py-1.5",
         headCell: "px-1.5 py-2",
-        siteWidth: "w-[98px]",
-        siteLabelWidth: "max-w-[90px]",
+        siteWidth: "w-[150px]",
+        siteLabelWidth: "max-w-[150px]",
         bodyCell: "px-1 py-1.5 align-top",
         inputWidth: "w-14"
       }
@@ -560,12 +560,12 @@ export default function RankingPage() {
         label: "โหมดใช้งานทุกวัน",
         compact: false,
         wrapperClass: "overflow-x-auto",
-        tableClass: "w-full table-fixed text-left text-xs leading-snug sm:text-sm",
-        keywordWidth: "w-[150px]",
+        tableClass: "w-full min-w-[1100px] table-fixed text-left text-xs leading-snug sm:text-sm",
+        keywordWidth: "w-[200px]",
         keywordCell: "px-3 py-2",
         headCell: "px-3 py-2.5",
-        siteWidth: "w-[110px]",
-        siteLabelWidth: "max-w-[96px]",
+        siteWidth: "w-[130px]",
+        siteLabelWidth: "max-w-[120px]",
         bodyCell: "px-2 py-2 align-top",
         inputWidth: "w-16"
       }
@@ -621,7 +621,7 @@ export default function RankingPage() {
           align={imageExportLayout ? "center" : "left"}
         />
         <div className="border-b border-amber-500/10 px-5 py-4" data-export-hide="true">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-sm text-zinc-400">ดูข้อมูลวันที่</span>
@@ -656,7 +656,8 @@ export default function RankingPage() {
                 </select>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
               <Button className="cursor-pointer" onClick={handleCheck} loading={checking} disabled={checking || savingManual}>
                 เช็คอันดับตอนนี้
               </Button>
@@ -682,8 +683,9 @@ export default function RankingPage() {
                   บันทึกแมนนวล
                 </Button>
               )}
-              <span className="mx-2 h-4 w-px shrink-0 bg-zinc-600" aria-hidden />
-              <Button className="cursor-pointer"
+              <span className="mx-2 hidden h-4 w-px shrink-0 bg-zinc-600 sm:block" aria-hidden />
+              <Button
+                className="cursor-pointer"
                 variant="secondary"
                 onClick={handleExportImage}
                 loading={exportingImage}
@@ -691,7 +693,8 @@ export default function RankingPage() {
               >
                 บันทึกรูป
               </Button>
-              <Button className="cursor-pointer"
+              <Button
+                className="cursor-pointer"
                 variant="secondary"
                 onClick={handleSaveFile}
                 loading={savingFile}

@@ -700,12 +700,6 @@ export default function RankingGraphPage() {
         <Button variant="secondary" onClick={handleSaveFile} loading={savingFile}>
           Save เป็นไฟล์
         </Button>
-        <Link
-          href="/ranking"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-amber-500/40 hover:text-amber-100"
-        >
-          ตารางอันดับแบบเต็ม →
-        </Link>
       </div>
 
       <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
@@ -805,74 +799,74 @@ export default function RankingGraphPage() {
                           connectNulls
                           name="เฉลี่ย"
                         />
-                    </LineChart>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartDataForGraph} margin={{ top: 8, right: 24, left: 8, bottom: 56 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-                        <XAxis
-                          dataKey="name"
-                          ticks={xAxisTicks}
-                          tick={{ fontSize: 10, fill: "#d4d4d8" }}
-                          tickFormatter={(value) => formatRecordedAt(String(value))}
-                          height={44}
-                        />
-                        <YAxis
-                          domain={[0, 5]}
-                          tick={{ fontSize: 10, fill: "#d4d4d8" }}
-                          tickFormatter={(v) => formatUniformScaleTick(Number(v))}
-                          ticks={[...UNIFORM_SCALE_TICKS]}
-                          width={48}
-                        />
-                        <Tooltip
-                          content={<DetailChartTooltip chartData={chartData} />}
-                          contentStyle={{
-                            backgroundColor: "transparent",
-                            border: "none",
-                            padding: 0
-                          }}
-                        />
-                        {sites.map((site, index) => (
+                      </LineChart>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartDataForGraph} margin={{ top: 8, right: 24, left: 8, bottom: 56 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                          <XAxis
+                            dataKey="name"
+                            ticks={xAxisTicks}
+                            tick={{ fontSize: 10, fill: "#d4d4d8" }}
+                            tickFormatter={(value) => formatRecordedAt(String(value))}
+                            height={44}
+                          />
+                          <YAxis
+                            domain={[0, 5]}
+                            tick={{ fontSize: 10, fill: "#d4d4d8" }}
+                            tickFormatter={(v) => formatUniformScaleTick(Number(v))}
+                            ticks={[...UNIFORM_SCALE_TICKS]}
+                            width={48}
+                          />
+                          <Tooltip
+                            content={<DetailChartTooltip chartData={chartData} />}
+                            contentStyle={{
+                              backgroundColor: "transparent",
+                              border: "none",
+                              padding: 0
+                            }}
+                          />
+                          {sites.map((site, index) => (
+                            <Line
+                              key={site.slug}
+                              type="monotone"
+                              dataKey={site.slug}
+                              stroke={getSiteColor(site)}
+                              strokeWidth={2.5}
+                              dot={{ r: 2 }}
+                              activeDot={{ r: 4 }}
+                              connectNulls
+                              name={site.name}
+                            />
+                          ))}
                           <Line
-                            key={site.slug}
                             type="monotone"
-                            dataKey={site.slug}
-                            stroke={getSiteColor(site)}
+                            dataKey="average"
+                            stroke={AVERAGE_LINE_COLOR}
                             strokeWidth={2.5}
+                            strokeDasharray="6 4"
                             dot={{ r: 2 }}
                             activeDot={{ r: 4 }}
                             connectNulls
-                            name={site.name}
+                            name="เฉลี่ย"
                           />
-                        ))}
-                        <Line
-                          type="monotone"
-                          dataKey="average"
-                          stroke={AVERAGE_LINE_COLOR}
-                          strokeWidth={2.5}
-                          strokeDasharray="6 4"
-                          dot={{ r: 2 }}
-                          activeDot={{ r: 4 }}
-                          connectNulls
-                          name="เฉลี่ย"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-                <div className="shrink-0 border-t border-zinc-700/80 px-2 pt-2.5 pb-2 flex flex-wrap justify-center gap-x-6 gap-y-1.5" data-export-hide="true">
-                  {sites.map((site, index) => (
-                    <span key={site.slug} className="inline-flex items-center gap-2 text-xs">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: getSiteColor(site) }} />
-                      <span style={{ color: getSiteColor(site) }}>{getSiteDisplayName(site.name || site.slug)}</span>
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                  <div className="shrink-0 border-t border-zinc-700/80 px-2 pt-2.5 pb-2 flex flex-wrap justify-center gap-x-6 gap-y-1.5" data-export-hide="true">
+                    {sites.map((site, index) => (
+                      <span key={site.slug} className="inline-flex items-center gap-2 text-xs">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: getSiteColor(site) }} />
+                        <span style={{ color: getSiteColor(site) }}>{getSiteDisplayName(site.name || site.slug)}</span>
+                      </span>
+                    ))}
+                    <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0 border-2 border-dashed border-zinc-500" style={{ backgroundColor: AVERAGE_LINE_COLOR }} />
+                      ค่าเฉลี่ยทุกเว็บไซต์
                     </span>
-                  ))}
-                  <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-                    <span className="h-2.5 w-2.5 rounded-full shrink-0 border-2 border-dashed border-zinc-500" style={{ backgroundColor: AVERAGE_LINE_COLOR }} />
-                    ค่าเฉลี่ยทุกเว็บไซต์
-                  </span>
+                  </div>
                 </div>
-              </div>
               )}
             </CardBody>
           </Card>
@@ -898,7 +892,7 @@ export default function RankingGraphPage() {
                 {summaryCards.map((site) => (
                   <div
                     key={site.slug}
-                    className="rounded-xl border border-amber-500/15 p-4 text-amber-100"
+                    className="rounded-xl border border-amber-500/15 p-4 text-amber-100 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-amber-400/30 hover:shadow-[0_12px_30px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:transform-none"
                     style={{ backgroundColor: `${getSiteColor(site)}44` }}
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
