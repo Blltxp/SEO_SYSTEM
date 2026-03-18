@@ -671,7 +671,7 @@ export default function RankingPage() {
                 }}
                 disabled={checking || savingManual}
               >
-                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไขด้วยตัวเอง"}
+                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไข"}
               </Button>
               {editingManual && (
                 <Button className="cursor-pointer" variant="secondary" onClick={handleCopyPrevious} disabled={checking || savingManual}>

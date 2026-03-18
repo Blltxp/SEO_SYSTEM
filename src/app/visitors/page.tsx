@@ -275,7 +275,7 @@ export default function VisitorsPage() {
                 }}
                 disabled={checkingMorning || checkingEvening}
               >
-                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไขด้วยตัวเอง"}
+                {editingManual ? "ยกเลิกแก้ไข" : "แก้ไข"}
               </Button>
               {editingManual && (
                 <Button

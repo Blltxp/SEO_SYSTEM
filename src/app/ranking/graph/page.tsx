@@ -695,10 +695,10 @@ export default function RankingGraphPage() {
           </select>
         </label>
         <Button variant="secondary" onClick={handleExportImage} loading={exportingImage}>
-          บันทึกเป็นรูป
+          บันทึกรูป
         </Button>
         <Button variant="secondary" onClick={handleSaveFile} loading={savingFile}>
-          Save เป็นไฟล์
+          พิมพ์
         </Button>
       </div>
 
