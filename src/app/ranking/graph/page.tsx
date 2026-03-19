@@ -83,10 +83,21 @@ function formatRecordedAt(value: string) {
   if (!value) return "-"
   const d = new Date(value.replace(" ", "T"))
   if (Number.isNaN(d.getTime())) return value
-  return new Intl.DateTimeFormat("th-TH", {
-    dateStyle: "full",
-    timeStyle: "medium"
+  // ทำให้ตัวเลือกในฟิลด์สั้นลง และไม่ให้มีคำว่า "พ.ศ."
+  const text = new Intl.DateTimeFormat("th-TH", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
   }).format(d)
+  return text
+    .replace(/\s*พ\.?ศ\.?\s*/g, " ")
+    .replace(/,\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function getCellKey(keyword: string, siteSlug: string) {
@@ -636,70 +647,75 @@ export default function RankingGraphPage() {
       maxWidth="full"
       titleAlign="center"
     >
-      <div className="mb-6 flex flex-wrap items-center justify-center gap-3" data-export-hide="true">
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <span>ดูข้อมูลวันที่:</span>
-          <select
-            value={viewRecordedAt}
-            onChange={(e) => setViewRecordedAt(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
-          >
-            <option value="">ล่าสุด</option>
-            {availableRecordedDates.map((value) => (
-              <option key={value} value={value}>
-                {formatRecordedAt(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <span>เทียบกับ:</span>
-          <select
-            value={compareRecordedAt}
-            onChange={(e) => setCompareRecordedAt(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
-          >
-            <option value="">รอบก่อนหน้าอัตโนมัติ</option>
-            {availableRecordedDates.filter((v) => v !== recordedAt).map((value) => (
-              <option key={value} value={value}>
-                {formatRecordedAt(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <span>ย้อนหลัง:</span>
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
-          >
-            {RANGE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <span>ข้อมูลถึงวันที่:</span>
-          <select
-            value={graphEndDate}
-            onChange={(e) => setGraphEndDate(e.target.value)}
-            className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
-          >
-            <option value="">วันนี้</option>
-            {availableRecordedDates.map((value) => (
-              <option key={value} value={value}>
-                {formatRecordedAt(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button className="cursor-pointer" variant="secondary" onClick={handleExportImage} loading={exportingImage}>
-          บันทึกรูป
-        </Button>
-        <Button className="cursor-pointer" variant="secondary" onClick={handleSaveFile} loading={savingFile}>
-          พิมพ์
-        </Button>
+      <div className="mb-6 flex flex-nowrap items-end justify-center gap-3 overflow-x-auto pb-1" data-export-hide="true">
+        <div className="flex flex-1 flex-nowrap items-center justify-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>ดูข้อมูลวันที่:</span>
+            <select
+              value={viewRecordedAt}
+              onChange={(e) => setViewRecordedAt(e.target.value)}
+              className="w-[180px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+            >
+              <option value="">ล่าสุด</option>
+              {availableRecordedDates.map((value) => (
+                <option key={value} value={value}>
+                  {formatRecordedAt(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>เทียบกับ:</span>
+            <select
+              value={compareRecordedAt}
+              onChange={(e) => setCompareRecordedAt(e.target.value)}
+              className="w-[180px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+            >
+              <option value="">รอบก่อนหน้าอัตโนมัติ</option>
+              {availableRecordedDates.filter((v) => v !== recordedAt).map((value) => (
+                <option key={value} value={value}>
+                  {formatRecordedAt(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>ย้อนหลัง:</span>
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="w-[140px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+            >
+              {RANGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>ข้อมูลถึงวันที่:</span>
+            <select
+              value={graphEndDate}
+              onChange={(e) => setGraphEndDate(e.target.value)}
+              className="w-[180px] rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200"
+            >
+              <option value="">วันนี้</option>
+              {availableRecordedDates.map((value) => (
+                <option key={value} value={value}>
+                  {formatRecordedAt(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap">
+          <Button className="cursor-pointer" variant="secondary" onClick={handleExportImage} loading={exportingImage}>
+            บันทึกรูป
+          </Button>
+          <Button className="cursor-pointer" variant="secondary" onClick={handleSaveFile} loading={savingFile}>
+            พิมพ์
+          </Button>
+        </div>
       </div>
 
       <div ref={exportRef} className={imageExportLayout ? "mx-auto w-fit" : ""}>
