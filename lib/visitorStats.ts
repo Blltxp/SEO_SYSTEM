@@ -139,14 +139,95 @@ export async function fetchAllSitesVisitorStats(page: Page): Promise<SiteVisitor
   return results
 }
 
+type ExternalAllStatsSite = {
+  site?: string
+  site_url?: string
+  today?: number
+  total?: number
+}
+
+type ExternalAllStatsPayload = {
+  generated_at?: string
+  sites?: ExternalAllStatsSite[]
+}
+
+function safeOrigin(urlStr: string | undefined): string | null {
+  if (!urlStr) return null
+  try {
+    const u = new URL(urlStr)
+    // normalize hostname: ตัด www. เพื่อให้เทียบกันได้แม้ external API ใช้ www หรือไม่
+    const hostname = u.hostname.replace(/^www\./i, "")
+    const port = u.port ? `:${u.port}` : ""
+    return `${u.protocol}//${hostname}${port}`
+  } catch {
+    return null
+  }
+}
+
+async function fetchVisitorStatsFromExternalApi(): Promise<SiteVisitorSnapshot[]> {
+  const apiUrl = process.env.VISITOR_STATS_EXTERNAL_API_URL ?? "https://js.wb.in.th/tracker/all-stats"
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const res = await fetch(apiUrl, {
+      method: "GET",
+      headers: { "User-Agent": USER_AGENT },
+      signal: controller.signal
+    })
+    if (!res.ok) {
+      throw new Error(`External API HTTP ${res.status}`)
+    }
+
+    const payload = (await res.json()) as ExternalAllStatsPayload
+    const externalSites = Array.isArray(payload?.sites) ? payload.sites : []
+    if (externalSites.length === 0) {
+      throw new Error("External API: payload.sites ไม่ได้เป็น array")
+    }
+
+    const extMap = new Map<string, { today: number; total: number }>()
+    for (const s of externalSites) {
+      const origin = safeOrigin(s.site_url)
+      if (!origin) continue
+      const today = typeof s.today === "number" ? s.today : 0
+      const total = typeof s.total === "number" ? s.total : 0
+      extMap.set(origin, { today, total })
+    }
+
+    // map ตาม origin ของแต่ละ site ที่ config ไว้ในระบบ (ในนี้มี 6 เว็บ)
+    return sites.map((site) => {
+      const expectedOrigin = safeOrigin(site.api) ?? ""
+      const v = expectedOrigin ? extMap.get(expectedOrigin) : undefined
+      return {
+        slug: site.slug,
+        total: v?.total ?? 0,
+        today: v?.today ?? 0
+      }
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 /** สร้าง browser + page สำหรับรันเช็ค (ให้ API route ใช้) */
 export async function runVisitorCheck(
   round: "morning" | "evening"
 ): Promise<{ ok: boolean; results: SiteVisitorSnapshot[]; error?: string }> {
+  // 1) ใช้ external API แทนการ scrape
+  try {
+    const results = await fetchVisitorStatsFromExternalApi()
+    return { ok: true, results }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`${LOG_PREFIX} external API ล้มเหลว: ${msg} — fallback ไป Puppeteer`)
+  }
+
+  // 2) fallback: ใช้ Puppeteer (ของเดิม)
   const puppeteer = await import("puppeteer").catch(() => null)
   if (!puppeteer) {
     return { ok: false, results: [], error: "Puppeteer is not available" }
   }
+
   const browser = await puppeteer.default.launch({
     headless: true,
     args: [
@@ -156,6 +237,7 @@ export async function runVisitorCheck(
       "--lang=th-TH"
     ]
   })
+
   try {
     const page = await browser.newPage()
     await page.setUserAgent(USER_AGENT)
