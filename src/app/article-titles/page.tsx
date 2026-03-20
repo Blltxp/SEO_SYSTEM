@@ -94,7 +94,7 @@ export default function ArticleTitlesPage() {
   return (
     <PageLayout
       title="เช็คหัวข้อบทความ"
-      description="เทียบกับหัวข้อใน 6 เว็บ — แบ่งคำไทยอัตโนมัติ + ช่วงข้อความซ้ำยาว + (ถ้ามี OPENAI_API_KEY) ความหมายใกล้เคียง เกณฑ์คล้าย 60%"
+      description="เทียบกับหัวข้อใน 6 เว็บ — แบ่งคำไทยอัตโนมัติ + ช่วงข้อความซ้ำยาว + ความหมายใกล้เคียง เกณฑ์คล้าย 60%"
       maxWidth="lg"
       titleAlign="center"
     >
