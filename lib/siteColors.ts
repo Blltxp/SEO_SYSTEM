@@ -1,5 +1,5 @@
 /**
- * ชื่อแสดงและสีของแต่ละเว็บ — ใช้ร่วมกันใน duplicates, website-status, visitors, ranking, graph
+ * ชื่อแสดงและสีของแต่ละเว็บ — ใช้ร่วมกันใน duplicates, website-status, visitors, ranking, graph, article-titles
  * ตรงกับ db SITE_RECORDS และสีในกราฟเจาะลึก
  */
 export const SITE_SLUG_TO_NAME: Record<string, string> = {

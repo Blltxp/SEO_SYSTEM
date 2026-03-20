@@ -4,18 +4,36 @@ import { useState } from "react"
 import { PageLayout } from "../../components/PageLayout"
 import { Card, CardBody, CardHeader } from "../../components/ui/Card"
 import { Button } from "../../components/ui/Button"
-import { Search, AlertTriangle, CheckCircle } from "lucide-react"
+import { Search, AlertTriangle, CheckCircle, RefreshCw, ExternalLink } from "lucide-react"
+import { getSiteColor } from "@/lib/siteColors"
 
 type TitleMatch = {
   title: string
   source: string
   siteLabel: string
   similarityPercent: number
+  url?: string | null
+}
+
+/**
+ * ตามที่กำหนด: 60–69% เขียว, 70–84% เหลือง, 85–100% แดง
+ * ใช้สีตรง ๆ + พื้นจาง/ขอบ เพื่อไม่ให้กลืนกับธีมมืด (amber ของ Tailwind จะออกโทนส้ม)
+ */
+function similarityPercentClass(percent: number): string {
+  if (percent >= 85) {
+    return "inline-block rounded px-1.5 py-0.5 font-semibold text-[#fecaca] bg-red-950/55 ring-1 ring-red-500/55"
+  }
+  if (percent >= 70) {
+    return "inline-block rounded px-1.5 py-0.5 font-semibold text-[#fef08a] bg-yellow-950/50 ring-1 ring-yellow-400/50"
+  }
+  return "inline-block rounded px-1.5 py-0.5 font-semibold text-[#86efac] bg-green-950/50 ring-1 ring-green-500/50"
 }
 
 export default function ArticleTitlesPage() {
   const [inputTitle, setInputTitle] = useState("")
   const [loading, setLoading] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hasSimilar, setHasSimilar] = useState<boolean | null>(null)
   const [matches, setMatches] = useState<TitleMatch[]>([])
@@ -49,10 +67,34 @@ export default function ArticleTitlesPage() {
     if (e.key === "Enter") handleSearch()
   }
 
+  const busy = loading || syncLoading
+
+  const handleSyncPosts = async () => {
+    setSyncLoading(true)
+    setSyncMessage(null)
+    setError(null)
+    try {
+      const res = await fetch("/api/posts/sync", { method: "POST" })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data?.error ?? "ซิงค์ไม่สำเร็จ")
+      setSyncMessage({
+        kind: "ok",
+        text: "ดึงโพสต์จาก 6 เว็บแล้ว — ลองกดค้นหาอีกครั้งเพื่อเทียบหัวข้อล่าสุด"
+      })
+    } catch (e) {
+      setSyncMessage({
+        kind: "err",
+        text: e instanceof Error ? e.message : "เกิดข้อผิดพลาด"
+      })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
   return (
     <PageLayout
       title="เช็คหัวข้อบทความ"
-      description="กรอกหัวข้อที่คิดไว้ แล้วกดค้นหาเพื่อเทียบกับที่มีใน 6 เว็บ — ถ้าคล้ายเกิน 60% จะแจ้งว่ามีแล้ว"
+      description="เทียบกับหัวข้อใน 6 เว็บ — แบ่งคำไทยอัตโนมัติ + ช่วงข้อความซ้ำยาว + (ถ้ามี OPENAI_API_KEY) ความหมายใกล้เคียง เกณฑ์คล้าย 60%"
       maxWidth="lg"
       titleAlign="center"
     >
@@ -63,6 +105,33 @@ export default function ArticleTitlesPage() {
           align="center"
         />
         <CardBody>
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-zinc-700/60 bg-zinc-950/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-zinc-400">
+              พึ่งลงบทความใหม่? ดึงหัวข้อล่าสุดจาก WordPress เข้าระบบก่อนเช็ค
+            </p>
+            <Button
+              variant="secondary"
+              onClick={handleSyncPosts}
+              loading={syncLoading}
+              disabled={busy && !syncLoading}
+              className="shrink-0 gap-2 cursor-pointer"
+            >
+              <RefreshCw className="h-4 w-4" />
+              ดึงโพสต์ล่าสุด
+            </Button>
+          </div>
+          {syncMessage && (
+            <p
+              className={`mb-4 rounded-lg px-4 py-2 text-sm ${
+                syncMessage.kind === "ok"
+                  ? "bg-emerald-900/25 text-emerald-200"
+                  : "bg-red-900/20 text-red-300"
+              }`}
+            >
+              {syncMessage.text}
+            </p>
+          )}
+
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <input
               type="text"
@@ -71,11 +140,12 @@ export default function ArticleTitlesPage() {
               onKeyDown={handleKeyDown}
               placeholder="กรอกหัวข้อบทความที่คิดขึ้นมา..."
               className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900/80 px-4 py-3 text-zinc-100 placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
-              disabled={loading}
+              disabled={busy}
             />
             <Button
               onClick={handleSearch}
               loading={loading}
+              disabled={busy && !loading}
               className="shrink-0 gap-2 cursor-pointer"
             >
               <Search className="h-4 w-4" />
@@ -104,10 +174,33 @@ export default function ArticleTitlesPage() {
                         key={`${m.title}-${m.source}-${i}`}
                         className="rounded-lg border border-zinc-700/80 bg-zinc-950/60 px-4 py-3"
                       >
-                        <p className="font-medium text-zinc-100">{m.title}</p>
-                        <p className="mt-1 text-xs text-zinc-400">
-                          {m.siteLabel} · ความคล้าย {m.similarityPercent}%
-                        </p>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-zinc-100">{m.title}</p>
+                            <p className="mt-1 text-xs text-zinc-500">
+                              <span className="font-medium" style={{ color: getSiteColor(m.source) }}>
+                                {m.siteLabel}
+                              </span>
+                              <span> · ความคล้าย </span>
+                              <span className={similarityPercentClass(m.similarityPercent)}>
+                                {m.similarityPercent}%
+                              </span>
+                            </p>
+                          </div>
+                          {m.url ? (
+                            <a
+                              href={m.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-600 bg-zinc-900/80 px-3 py-2 text-xs font-medium text-zinc-200 transition-colors hover:border-amber-500/45 hover:bg-zinc-900 hover:text-amber-100"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              ดู
+                            </a>
+                          ) : (
+                            <span className="shrink-0 text-xs text-zinc-600">ไม่มีลิงก์ในระบบ</span>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
