@@ -58,7 +58,6 @@ export default function VisitorsPage() {
   }, [fetchData])
 
   const handleCheck = async (round: "morning" | "evening") => {
-    if (round === "morning" && hasMorningChecked) return
     setError(null)
     if (round === "morning") setCheckingMorning(true)
     else setCheckingEvening(true)
@@ -211,9 +210,6 @@ export default function VisitorsPage() {
 
   const displayDate = date || new Date().toISOString().slice(0, 10)
 
-  /** มีการเช็ครอบเช้าไปแล้วสำหรับวันที่แสดงอยู่ → ไม่ให้กดรอบเช้าซ้ำ */
-  const hasMorningChecked = rows.some((r) => r.morning_round != null)
-
   if (loading) {
     return (
       <PageLayout title="จำนวนคนเข้าชมเว็บไซต์" description="สถานะเว็บไซต์ประจำวัน">
@@ -252,8 +248,7 @@ export default function VisitorsPage() {
               <Button className="cursor-pointer"
                 onClick={() => handleCheck("morning")}
                 loading={checkingMorning}
-                disabled={checkingMorning || checkingEvening || editingManual || hasMorningChecked}
-                title={hasMorningChecked ? "เช็ครอบเช้าไปแล้ว ไม่สามารถกดซ้ำได้" : undefined}
+                disabled={checkingMorning || checkingEvening || editingManual}
               >
                 เช็คจำนวนรอบเช้า
               </Button>
